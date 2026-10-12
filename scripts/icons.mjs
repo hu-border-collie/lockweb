@@ -43,10 +43,12 @@ for (const [w, h, r] of devices) {
     tags += `<link rel="apple-touch-startup-image" href="./splash/${filename}" media="(device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${r}) and (orientation: ${landscape ? "landscape" : "portrait"})"/>\n`;
   }
 }
-const html = readFileSync("index.html", "utf8")
-  .replace(/<!-- SPLASH_START -->[\s\S]*?<!-- SPLASH_END -->/, "")
-  .replace(
-    "</head>",
-    `<!-- SPLASH_START -->\n${tags}<!-- SPLASH_END --></head>`,
-  );
+const inputHtml = readFileSync("index.html", "utf8");
+const splashBlock = `<!-- SPLASH_START -->\n${tags}<!-- SPLASH_END -->`;
+const html = inputHtml.includes("<!-- SPLASH_START -->")
+  ? inputHtml.replace(
+      /<!-- SPLASH_START -->[\s\S]*?<!-- SPLASH_END -->/,
+      splashBlock,
+    )
+  : inputHtml.replace("</head>", splashBlock + "</head>");
 writeFileSync("index.html", html);

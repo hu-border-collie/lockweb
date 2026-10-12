@@ -187,10 +187,12 @@ test("edit and delete photos, password lock, responsive dark appearance", async 
     .getByRole("button", { name: /编辑/ })
     .click();
   await page.getByRole("button", { name: "移除已有照片" }).first().click();
-  await page.clock.install();
   await page.getByLabel("备注", { exact: true }).fill("edited");
-  await page.clock.runFor(2100);
-  await expect(page.getByLabel("备注", { exact: true })).toBeFocused();
+  // Hold input focus across two real one-second UI ticks.
+  await page.waitForTimeout(2100);
+  await expect(
+    page.getByRole("textbox", { name: "备注", exact: true }),
+  ).toBeFocused();
   await page.getByRole("button", { name: "保存打卡", exact: true }).click();
   await expect(page.getByText("edited", { exact: true })).toBeVisible();
   await page

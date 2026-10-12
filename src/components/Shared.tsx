@@ -104,7 +104,7 @@ export function Photo({
 }) {
   const [url, setUrl] = useState("");
   const [error, setError] = useState(false);
-  const ref = useRef<HTMLButtonElement>(null);
+  const ref = useRef<HTMLElement | null>(null);
   useEffect(() => {
     let alive = true,
       object = "";
@@ -137,20 +137,33 @@ export function Photo({
       if (object) URL.revokeObjectURL(object);
     };
   }, [id, vault, blob]);
-  return (
+  const content = url ? (
+    <img src={url} alt="私人打卡照片" loading="lazy" />
+  ) : (
+    <span>{error ? "照片读取失败" : <ImageIcon size={22} />}</span>
+  );
+  return onClick ? (
     <button
-      ref={ref}
+      ref={(node) => {
+        ref.current = node;
+      }}
       type="button"
       className="photo-thumb"
       onClick={onClick}
       aria-label="查看照片"
     >
-      {url ? (
-        <img src={url} alt="私人打卡照片" loading="lazy" />
-      ) : (
-        <span>{error ? "照片读取失败" : <ImageIcon size={22} />}</span>
-      )}
+      {content}
     </button>
+  ) : (
+    <div
+      ref={(node) => {
+        ref.current = node;
+      }}
+      className="photo-thumb"
+      aria-label="照片缩略图"
+    >
+      {content}
+    </div>
   );
 }
 export function RecordCard({
