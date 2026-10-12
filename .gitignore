@@ -7,3 +7,4 @@ playwright-report/
 public/icons/
 public/splash/
 tests/fixture.jpg
+.playwright-browsers/

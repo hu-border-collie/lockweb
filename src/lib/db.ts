@@ -6,7 +6,13 @@ import type {
   PhotoRow,
   VaultConfig,
   PhotoInput,
+  JournalSettings,
+  QuickUnlockBinding,
 } from "./models";
+import { defaultSettings, QUICK_UNLOCK_META } from "./models";
+import { validateLinks, validateSettings } from "./journal";
+import { dayKey } from "./time";
+import { validateManifest } from "./backup";
 import { makeVault, sealJSON, openJSON, seal, open } from "./crypto";
 import { validateSession } from "./time";
 export class PrivateDB extends Dexie {
@@ -30,21 +36,46 @@ export class PrivateDB extends Dexie {
         photos: "id,ownerId",
       })
       .upgrade((tx) => tx.table("meta").put({ key: "revision", value: 0 }));
+    // Same stores; advancing the version prevents older clients discarding new fields.
+    this.version(3).stores({
+      meta: "key",
+      entries: "id",
+      sessions: "id",
+      photos: "id,ownerId",
+    });
+    // Earlier clients do not revoke quick-unlock bindings when changing passwords.
+    this.version(4).stores({
+      meta: "key",
+      entries: "id",
+      sessions: "id",
+      photos: "id,ownerId",
+    });
     this.on("versionchange", () => this.close());
   }
 }
 export const db = new PrivateDB();
 export const getConfig = async (database = db) =>
   (await database.meta.get("vault"))?.value as VaultConfig | undefined;
-export async function createVault(password: string, database = db) {
+export async function createVault(
+  password: string,
+  database = db,
+  signal?: AbortSignal,
+) {
+  const check = () => {
+    if (signal?.aborted) throw new DOMException("操作已取消", "AbortError");
+  };
+  check();
   const vault = await makeVault(password);
+  check();
   await database.transaction("rw", database.meta, async () => {
+    check();
     if (await database.meta.get("vault"))
       throw new Error("保险库已存在，请解锁");
     await database.meta.bulkPut([
       { key: "vault", value: vault.config },
       { key: "revision", value: 0 },
     ]);
+    check();
   });
   return vault;
 }
@@ -63,6 +94,9 @@ export class Vault {
       async () => ({
         entries: await this.database.entries.toArray(),
         sessions: await this.database.sessions.toArray(),
+        settings: (await this.database.meta.get("journal-settings"))?.value as
+          | Row
+          | undefined,
         revision:
           ((await this.database.meta.get("revision"))?.value as number) ?? 0,
       }),
@@ -79,6 +113,15 @@ export class Vault {
         ),
       ),
       revision: rows.revision,
+      settings: rows.settings
+        ? validateSettings(
+            await openJSON<JournalSettings>(
+              this.key,
+              rows.settings.sealed,
+              "journal-settings",
+            ),
+          )
+        : defaultSettings(),
     };
   }
   private async mutate(revision: number, action: () => Promise<void>) {
@@ -101,6 +144,17 @@ export class Vault {
     );
   }
   async saveEntry(entry: Entry, photos: PhotoInput[], revision: number) {
+    const snap = await this.snapshot();
+    validateLinks([entry], snap.sessions, snap.settings);
+    if (
+      !(
+        entry.comfort === null ||
+        (Number.isInteger(entry.comfort) &&
+          entry.comfort >= 1 &&
+          entry.comfort <= 5)
+      )
+    )
+      throw new Error("舒适度必须为 1 到 5，或未填写");
     if (
       !Number.isFinite(entry.timestamp) ||
       entry.timestamp > Date.now() ||
@@ -116,6 +170,11 @@ export class Vault {
       throw new Error("备注过长，或标签超过 50 个/每个超过 100 字符");
     if (new Set(entry.photoIds).size !== entry.photoIds.length)
       throw new Error("不能重复引用同一张照片");
+    if (
+      new Set(photos.map((p) => p.id)).size !== photos.length ||
+      photos.some((p) => !entry.photoIds.includes(p.id))
+    )
+      throw new Error("新增照片引用无效");
     const row: Row = {
       id: entry.id,
       sealed: await sealJSON(this.key, entry, `entry:${entry.id}`),
@@ -137,6 +196,11 @@ export class Vault {
         ),
       });
     await this.mutate(revision, async () => {
+      for (const p of rows) {
+        const existing = await this.database.photos.get(p.id);
+        if (existing && existing.ownerId !== entry.id)
+          throw new Error("照片已属于另一条记录");
+      }
       const old = await this.database.photos
         .where("ownerId")
         .equals(entry.id)
@@ -159,6 +223,7 @@ export class Vault {
   }
   async saveSession(session: WearSession, revision: number) {
     validateSession(session);
+    validateLinks([], [session], (await this.snapshot()).settings);
     const sealed = await sealJSON(this.key, session, `session:${session.id}`);
     await this.mutate(revision, async () => {
       if (session.end === null) {
@@ -177,7 +242,20 @@ export class Vault {
     });
   }
   async deleteSession(id: string, revision: number) {
+    const snapshot = await this.snapshot();
+    const linked = await Promise.all(
+      snapshot.entries
+        .filter((e) => e.sessionId === id)
+        .map(async (e) => {
+          const { sessionId: _removed, ...entry } = e;
+          return {
+            id: entry.id,
+            sealed: await sealJSON(this.key, entry, `entry:${entry.id}`),
+          };
+        }),
+    );
     await this.mutate(revision, async () => {
+      await this.database.entries.bulkPut(linked);
       await this.database.sessions.delete(id);
     });
   }
@@ -199,6 +277,7 @@ export class Vault {
     const { config } = await makeVault(password, this.key, this.config.id);
     await this.mutate(revision, async () => {
       await this.database.meta.put({ key: "vault", value: config });
+      await this.database.meta.delete(QUICK_UNLOCK_META);
     });
     this.config = config;
   }
@@ -207,6 +286,7 @@ export class Vault {
       await this.database.entries.clear();
       await this.database.sessions.clear();
       await this.database.photos.clear();
+      await this.database.meta.delete(QUICK_UNLOCK_META);
     });
   }
   async replace(
@@ -214,7 +294,26 @@ export class Vault {
     sessions: WearSession[],
     photos: PhotoInput[],
     revision: number,
+    settings: JournalSettings = defaultSettings(),
   ) {
+    validateManifest({
+      format: "private-log",
+      version: 2,
+      entries,
+      sessions,
+      settings,
+    });
+    const expected = new Set(entries.flatMap((e) => e.photoIds));
+    if (
+      photos.length !== expected.size ||
+      new Set(photos.map((p) => p.id)).size !== photos.length ||
+      photos.some((p) => !expected.has(p.id))
+    )
+      throw new Error("恢复照片引用不完整或重复");
+    const settingRow = {
+      id: "journal-settings",
+      sealed: await sealJSON(this.key, settings, "journal-settings"),
+    };
     const er = await Promise.all(
       entries.map(async (e) => ({
         id: e.id,
@@ -255,7 +354,81 @@ export class Vault {
       await this.database.entries.bulkPut(er);
       await this.database.sessions.bulkPut(sr);
       await this.database.photos.bulkPut(pr);
+      await this.database.meta.put({
+        key: "journal-settings",
+        value: settingRow,
+      });
+      await this.database.meta.delete(QUICK_UNLOCK_META);
     });
+  }
+  async saveSettings(settings: JournalSettings, revision: number) {
+    validateSettings(settings);
+    const snap = await this.snapshot();
+    validateLinks(snap.entries, snap.sessions, settings);
+    const row = {
+      id: "journal-settings",
+      sealed: await sealJSON(this.key, settings, "journal-settings"),
+    };
+    await this.mutate(revision, async () => {
+      await this.database.meta.put({ key: "journal-settings", value: row });
+    });
+  }
+  async saveQuickUnlock(
+    binding: QuickUnlockBinding,
+    revision: number,
+    check: () => void = () => {},
+  ) {
+    if (binding.vaultId !== this.config.id)
+      throw new Error("保险库已改变，请重新解锁");
+    await this.mutate(revision, async () => {
+      check();
+      await this.database.meta.put({ key: QUICK_UNLOCK_META, value: binding });
+      check();
+    });
+  }
+  async disableQuickUnlock(revision: number) {
+    await this.mutate(revision, async () => {
+      await this.database.meta.delete(QUICK_UNLOCK_META);
+    });
+  }
+  async storageAnalysis() {
+    const data = await this.database.transaction(
+      "r",
+      this.database.entries,
+      this.database.photos,
+      async () => {
+        const entries = await this.database.entries.toArray();
+        const sizes: { ownerId: string; bytes: number }[] = [];
+        await this.database.photos.each((p) => {
+          sizes.push({
+            ownerId: p.ownerId,
+            bytes:
+              p.full.data.byteLength +
+              p.full.iv.byteLength +
+              p.thumb.data.byteLength +
+              p.thumb.iv.byteLength,
+          });
+        });
+        return { entries, sizes };
+      },
+    );
+    const months = new Map<
+      string,
+      { month: string; count: number; bytes: number }
+    >();
+    const owners = new Map<string, string>();
+    for (const r of data.entries) {
+      const e = await openJSON<Entry>(this.key, r.sealed, `entry:${r.id}`);
+      owners.set(e.id, dayKey(e.timestamp).slice(0, 7));
+    }
+    for (const p of data.sizes) {
+      const month = owners.get(p.ownerId) ?? "未关联";
+      const group = months.get(month) ?? { month, count: 0, bytes: 0 };
+      group.count++;
+      group.bytes += p.bytes;
+      months.set(month, group);
+    }
+    return [...months.values()].sort((a, b) => b.month.localeCompare(a.month));
   }
 }
 export function userError(error: unknown) {

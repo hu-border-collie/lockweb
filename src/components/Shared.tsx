@@ -3,6 +3,9 @@ import { X, Plus, Minus, RotateCcw, Image as ImageIcon } from "lucide-react";
 import type { Vault } from "../lib/db";
 import type { Entry } from "../lib/models";
 import { clock, dateTime } from "../lib/time";
+import { useStealth } from "./Stealth";
+const modalStack: HTMLDivElement[] = [];
+let previousOverflow = "";
 export function Empty({
   icon,
   title,
@@ -37,10 +40,13 @@ export function Modal({
   closeRef.current = onClose;
   useEffect(() => {
     const old = document.activeElement as HTMLElement;
-    const overflow = document.body.style.overflow;
+    const node = ref.current!;
+    if (!modalStack.length) previousOverflow = document.body.style.overflow;
+    if (ref.current) modalStack.push(ref.current);
     document.body.style.overflow = "hidden";
     ref.current?.focus();
     const key = (e: KeyboardEvent) => {
+      if (modalStack.at(-1) !== ref.current) return;
       if (e.key === "Escape") closeRef.current();
       if (e.key === "Tab") {
         const els = Array.from(
@@ -65,9 +71,12 @@ export function Modal({
     };
     document.addEventListener("keydown", key);
     return () => {
-      document.body.style.overflow = overflow;
+      const index = modalStack.indexOf(node);
+      if (index >= 0) modalStack.splice(index, 1);
+      if (!modalStack.length) document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", key);
-      old?.focus();
+      if (modalStack.length) modalStack.at(-1)?.focus();
+      else if (document.contains(old)) old?.focus();
     };
   }, []);
   return (
@@ -104,6 +113,72 @@ export function Photo({
 }) {
   const [url, setUrl] = useState("");
   const [error, setError] = useState(false);
+  const stealth = useStealth();
+  const [reveal, setReveal] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const held = useRef(false);
+  const stop = () => {
+    clearTimeout(timer.current);
+    setReveal(false);
+  };
+  useEffect(() => {
+    clearTimeout(timer.current);
+    setReveal(false);
+    held.current = false;
+  }, [stealth]);
+  useEffect(() => {
+    const clear = () => {
+      clearTimeout(timer.current);
+      setReveal(false);
+      held.current = false;
+    };
+    window.addEventListener("blur", clear);
+    document.addEventListener("visibilitychange", clear);
+    return () => {
+      clearTimeout(timer.current);
+      window.removeEventListener("blur", clear);
+      document.removeEventListener("visibilitychange", clear);
+    };
+  }, []);
+  const preview = {
+    onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
+      if (!stealth || e.button !== 0) return;
+      held.current = false;
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => {
+        held.current = true;
+        setReveal(true);
+      }, 350);
+    },
+    onPointerUp: stop,
+    onPointerCancel: stop,
+    onPointerLeave: stop,
+    onBlur: stop,
+    onContextMenu: (e: React.MouseEvent) => {
+      if (stealth) e.preventDefault();
+    },
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (stealth && e.key === " ") {
+        e.preventDefault();
+        held.current = true;
+        setReveal(true);
+      }
+    },
+    onKeyUp: (e: React.KeyboardEvent) => {
+      if (e.key === " ") {
+        e.preventDefault();
+        stop();
+        held.current = false;
+      }
+    },
+    onClick: () => {
+      if (held.current) {
+        held.current = false;
+        return;
+      }
+      onClick?.();
+    },
+  };
   const ref = useRef<HTMLElement | null>(null);
   useEffect(() => {
     let alive = true,
@@ -138,7 +213,7 @@ export function Photo({
     };
   }, [id, vault, blob]);
   const content = url ? (
-    <img src={url} alt="私人打卡照片" loading="lazy" />
+    <img src={url} alt="私人打卡照片" loading="lazy" draggable={false} />
   ) : (
     <span>{error ? "照片读取失败" : <ImageIcon size={22} />}</span>
   );
@@ -148,8 +223,8 @@ export function Photo({
         ref.current = node;
       }}
       type="button"
-      className="photo-thumb"
-      onClick={onClick}
+      className={`photo-thumb ${stealth && !reveal ? "concealed" : ""}`}
+      {...preview}
       aria-label="查看照片"
     >
       {content}
@@ -159,7 +234,9 @@ export function Photo({
       ref={(node) => {
         ref.current = node;
       }}
-      className="photo-thumb"
+      className={`photo-thumb ${stealth && !reveal ? "concealed" : ""}`}
+      {...preview}
+      tabIndex={stealth ? 0 : undefined}
       aria-label="照片缩略图"
     >
       {content}

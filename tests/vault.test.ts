@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { vi } from "vitest";
 import { PrivateDB, createVault, Vault, getConfig } from "../src/lib/db";
 import { unlockVault, seal, open, makeVault } from "../src/lib/crypto";
 import {

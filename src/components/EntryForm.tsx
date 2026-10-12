@@ -2,7 +2,15 @@ import { beginSystemDialog, endSystemDialog } from "../lib/privacy";
 import { useEffect, useRef, useState } from "react";
 import { Camera, ImagePlus, X, ChevronDown, Check } from "lucide-react";
 import { Photo } from "./Shared";
-import { id, type Entry, type PhotoInput } from "../lib/models";
+import {
+  id,
+  type Entry,
+  type PhotoInput,
+  type JournalSettings,
+  type WearSession,
+} from "../lib/models";
+import { PrivacyBrush } from "./PrivacyBrush";
+import { dateTime } from "../lib/time";
 import type { Vault } from "../lib/db";
 import { userError } from "../lib/db";
 import { localInput, fromInput } from "../lib/time";
@@ -15,6 +23,9 @@ export function EntryForm({
   onSave,
   onDelete,
   onCancel,
+  settings,
+  sessions,
+  active,
 }: {
   entry?: Entry;
   vault: Vault;
@@ -23,10 +34,25 @@ export function EntryForm({
   onSave: () => Promise<void>;
   onDelete?: (entry: Entry) => void;
   onCancel: () => void;
+  settings: JournalSettings;
+  sessions: WearSession[];
+  active?: WearSession;
 }) {
   const [initialTimestamp] = useState(() => entry?.timestamp ?? Date.now());
   const [recordId] = useState(() => entry?.id ?? id());
   const [photos, setPhotos] = useState<PhotoInput[]>([]);
+  const [baseRevision] = useState(revision);
+  const [gearId, setGearId] = useState(
+    entry ? (entry.gearId ?? "") : (active?.gearId ?? ""),
+  );
+  const [sessionId, setSessionId] = useState(
+    entry ? (entry.sessionId ?? "") : (active?.id ?? ""),
+  );
+  const [brush, setBrush] = useState<{
+    id: string;
+    blob: Blob;
+    existing: boolean;
+  } | null>(null);
   const [kept, setKept] = useState(entry?.photoIds ?? []);
   const [time, setTime] = useState(localInput(initialTimestamp));
   const [note, setNote] = useState(entry?.note ?? "");
@@ -104,9 +130,11 @@ export function EntryForm({
           photoIds: [...kept, ...photos.map((p) => p.id)],
           createdAt: entry?.createdAt ?? Date.now(),
           updatedAt: Date.now(),
+          ...(gearId ? { gearId } : {}),
+          ...(sessionId ? { sessionId } : {}),
         },
         photos,
-        revision,
+        baseRevision,
       );
       await onSave();
     } catch (e) {
@@ -116,7 +144,7 @@ export function EntryForm({
     }
   }
   return (
-    <div className="entry-form">
+    <fieldset className="entry-form" disabled={!!busy}>
       <input
         ref={camera}
         className="sr-only"
@@ -185,6 +213,25 @@ export function EntryForm({
               <div key={p}>
                 <Photo id={p} vault={vault} />
                 <button
+                  className="photo-edit"
+                  disabled={!!busy}
+                  onClick={async () => {
+                    setBusy("正在读取照片…");
+                    setError("");
+                    try {
+                      const blob = await vault.photo(p);
+                      if (alive.current)
+                        setBrush({ id: p, blob, existing: true });
+                    } catch (e) {
+                      if (alive.current) setError(userError(e));
+                    } finally {
+                      if (alive.current) setBusy("");
+                    }
+                  }}
+                >
+                  打码
+                </button>
+                <button
                   disabled={!!busy}
                   className="remove-photo"
                   aria-label="移除已有照片"
@@ -197,6 +244,15 @@ export function EntryForm({
             {photos.map((p) => (
               <div key={p.id}>
                 <Photo id={p.id} vault={vault} blob={p.thumb} />
+                <button
+                  className="photo-edit"
+                  disabled={!!busy}
+                  onClick={() =>
+                    setBrush({ id: p.id, blob: p.full, existing: false })
+                  }
+                >
+                  打码
+                </button>
                 <button
                   disabled={!!busy}
                   className="remove-photo"
@@ -220,6 +276,90 @@ export function EntryForm({
           required
         />
       </label>
+      {settings.templates.length > 0 && (
+        <label className="field">
+          载入模板
+          <select
+            value=""
+            onChange={(e) => {
+              const t = settings.templates.find((t) => t.id === e.target.value);
+              if (t) {
+                if (note && !confirm("载入模板会替换当前备注，继续？")) return;
+                setNote(t.text);
+                setDetails(true);
+              }
+            }}
+          >
+            <option value="">选择一个模板</option>
+            {settings.templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <div className="fast-tags" aria-label="常用标签">
+        {settings.fastTags.map((t) => {
+          const selected = tags
+            .split(/[,，]/)
+            .map((t) => t.trim())
+            .filter(Boolean);
+          return (
+            <button
+              key={t}
+              type="button"
+              aria-pressed={selected.includes(t)}
+              onClick={() =>
+                setTags(
+                  (selected.includes(t)
+                    ? selected.filter((x) => x !== t)
+                    : [...selected, t]
+                  ).join("，"),
+                )
+              }
+            >
+              {t}
+            </button>
+          );
+        })}
+      </div>
+      {(settings.gears.length > 0 || gearId) && (
+        <label className="field">
+          打卡装备
+          <select value={gearId} onChange={(e) => setGearId(e.target.value)}>
+            <option value="">不选择装备</option>
+            {settings.gears
+              .filter((g) => !g.archived || g.id === gearId)
+              .map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                  {g.archived ? "（已归档）" : ""}
+                </option>
+              ))}
+          </select>
+        </label>
+      )}
+      {sessions.length > 0 && (
+        <label className="field">
+          关联佩戴时段
+          <select
+            value={sessionId}
+            onChange={(e) => setSessionId(e.target.value)}
+          >
+            <option value="">不关联时段</option>
+            {sessions.map((s) => (
+              <option key={s.id} value={s.id}>
+                {dateTime(s.start)}
+                {s.end === null ? "（进行中）" : ""}
+              </option>
+            ))}
+          </select>
+          <small>
+            只有明确关联且处于实际佩戴期间的打卡参与时长与舒适度分析。
+          </small>
+        </label>
+      )}
       <button
         className="details-toggle"
         onClick={() => setDetails(!details)}
@@ -316,6 +456,22 @@ export function EntryForm({
       <button className="text-button wide" disabled={!!busy} onClick={onCancel}>
         取消
       </button>
-    </div>
+      {brush && (
+        <PrivacyBrush
+          blob={brush.blob}
+          onClose={() => setBrush(null)}
+          onApply={(p) => {
+            if (brush.existing) {
+              setKept((ids) => ids.filter((id) => id !== brush.id));
+              setPhotos((previous) => [...previous, p]);
+            } else
+              setPhotos((previous) =>
+                previous.map((x) => (x.id === brush.id ? p : x)),
+              );
+            setBrush(null);
+          }}
+        />
+      )}
+    </fieldset>
   );
 }

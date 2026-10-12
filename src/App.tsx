@@ -1,6 +1,13 @@
 import { inSystemDialog } from "./lib/privacy";
+import { LOCK_EVENT } from "./lib/quickUnlock";
 import Dexie from "dexie";
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import {
   Home,
@@ -14,6 +21,8 @@ import {
   Timer,
   ShieldCheck,
   WifiOff,
+  Eye,
+  EyeOff,
   ChevronRight,
 } from "lucide-react";
 import { Auth } from "./components/Auth";
@@ -22,6 +31,8 @@ import { Stats } from "./components/Stats";
 import { Settings, type Theme } from "./components/Settings";
 import { EntryForm } from "./components/EntryForm";
 import { SessionForm } from "./components/SessionForm";
+import { StealthContext } from "./components/Stealth";
+import { defaultSettings, type JournalSettings } from "./lib/models";
 import { Photo, RecordCard, Modal, Empty, Viewer } from "./components/Shared";
 import { Vault, getConfig, userError } from "./lib/db";
 import {
@@ -30,7 +41,14 @@ import {
   type Entry,
   type WearSession,
 } from "./lib/models";
-import { dayKey, duration, dateTime, clock, summary } from "./lib/time";
+import {
+  dayKey,
+  duration,
+  dateTime,
+  clock,
+  summary,
+  totalWear,
+} from "./lib/time";
 const NAV = [
   { id: "home", label: "首页", icon: Home },
   { id: "calendar", label: "日历", icon: CalendarDays },
@@ -88,6 +106,7 @@ export default function App() {
       navigator.serviceWorker.removeEventListener("controllerchange", update);
   }, [setOfflineReady]);
   const lock = useCallback(() => {
+    window.dispatchEvent(new Event(LOCK_EVENT));
     setVault(null);
     void getConfig()
       .then(setConfig)
@@ -138,8 +157,11 @@ export default function App() {
       <Auth
         config={config}
         error={fatal}
-        onUnlock={async (v) => {
+        onUnlock={async (v, signal, guard) => {
           await v.snapshot();
+          await guard?.();
+          if (signal.aborted)
+            throw new DOMException("操作已取消", "AbortError");
           setConfig(v.config);
           setVault(v);
           setFatal("");
@@ -175,6 +197,19 @@ export default function App() {
     </>
   );
 }
+function PrivateShell({
+  stealth,
+  children,
+}: {
+  stealth: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <StealthContext.Provider value={stealth}>
+      <div className="app-shell">{children}</div>
+    </StealthContext.Provider>
+  );
+}
 function Unlocked({
   vault,
   lock,
@@ -194,6 +229,10 @@ function Unlocked({
 }) {
   const [tab, setTab] = useState("home");
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [settings, setSettings] = useState<JournalSettings>(defaultSettings);
+  const [ready, setReady] = useState(false);
+  const [stealth, setStealth] = useState(true);
+  const [gearId, setGearId] = useState("");
   const [sessions, setSessions] = useState<WearSession[]>([]);
   const [revision, setRevision] = useState(0);
   const [now, setNow] = useState(Date.now());
@@ -215,11 +254,16 @@ function Unlocked({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [formKey, setFormKey] = useState(0);
+  const refreshGeneration = useRef(0);
   const refresh = useCallback(async () => {
+    const generation = ++refreshGeneration.current;
     const snap = await vault.snapshot();
+    if (generation !== refreshGeneration.current) return;
     setEntries(snap.entries.sort((a, b) => b.timestamp - a.timestamp));
     setSessions(snap.sessions.sort((a, b) => b.start - a.start));
     setRevision(snap.revision);
+    setSettings(snap.settings);
+    setReady(true);
   }, [vault]);
   useEffect(() => {
     void refresh().catch((e) => setError(userError(e)));
@@ -232,6 +276,7 @@ function Unlocked({
     };
     Dexie.on("storagemutated", sub);
     return () => {
+      refreshGeneration.current++;
       clearInterval(timer);
       window.removeEventListener("online", on);
       window.removeEventListener("offline", on);
@@ -244,6 +289,11 @@ function Unlocked({
     return () => clearTimeout(t);
   }, [message]);
   const active = sessions.find((s) => s.end === null);
+  useEffect(() => {
+    if (gearId && !settings.gears.some((g) => g.id === gearId && !g.archived))
+      setGearId("");
+  }, [gearId, settings]);
+  const paused = active?.breaks?.at(-1)?.end === null;
   const today = entries.filter((e) => dayKey(e.timestamp) === dayKey(now));
   const totals = summary(entries, sessions, now);
   const view = useCallback(
@@ -275,8 +325,25 @@ function Unlocked({
     setError("");
     window.scrollTo({ top: 0 });
   }
+  if (!ready)
+    return (
+      <div className="auth">
+        <p role={error ? "alert" : "status"}>{error || "正在读取记录…"}</p>
+        {error && (
+          <button
+            className="secondary"
+            onClick={() => void refresh().catch((e) => setError(userError(e)))}
+          >
+            重新读取
+          </button>
+        )}
+        <button className="text-button" onClick={lock}>
+          锁定应用
+        </button>
+      </div>
+    );
   return (
-    <div className="app-shell">
+    <PrivateShell stealth={stealth}>
       <header className="app-header">
         <div className="brand">
           <span className="brand-mark">
@@ -286,9 +353,19 @@ function Unlocked({
             私记<small>只留给自己</small>
           </div>
         </div>
-        <button className="icon-button" onClick={lock} aria-label="锁定应用">
-          <LockKeyhole size={21} />
-        </button>
+        <div className="header-actions">
+          <button
+            className="icon-button"
+            aria-label="防窥模式"
+            aria-pressed={stealth}
+            onClick={() => setStealth((v) => !v)}
+          >
+            {stealth ? <EyeOff size={21} /> : <Eye size={21} />}
+          </button>
+          <button className="icon-button" onClick={lock} aria-label="锁定应用">
+            <LockKeyhole size={21} />
+          </button>
+        </div>
       </header>
       {!online && (
         <div className="offline-banner">
@@ -338,7 +415,7 @@ function Unlocked({
               <div className="hero-top">
                 <span className="state-label">
                   <i />
-                  {active ? "正在佩戴" : "当前未佩戴"}
+                  {active ? (paused ? "清洁小憩中" : "正在佩戴") : "当前未佩戴"}
                 </span>
                 <button className="hero-link" onClick={() => setManage(true)}>
                   时段管理
@@ -349,7 +426,7 @@ function Unlocked({
                 {active ? "本次已持续" : "按自己的节奏记录"}
               </p>
               <div className="wear-timer">
-                {active ? duration(now - active.start, true) : "自由时刻"}
+                {active ? duration(totalWear([active], now), true) : "自由时刻"}
               </div>
               <p className="hero-start">
                 {active
@@ -358,18 +435,31 @@ function Unlocked({
               </p>
               <button
                 className="hero-action"
-                disabled={busy}
+                disabled={busy || !ready}
                 onClick={() =>
                   void run(async () => {
                     if (active) {
+                      const end = Date.now();
                       await vault.saveSession(
-                        { ...active, end: Date.now() },
+                        {
+                          ...active,
+                          end,
+                          breaks: active.breaks?.map((b) =>
+                            b.end === null ? { ...b, end } : b,
+                          ),
+                        },
                         revision,
                       );
                       setMessage("本次佩戴已结束");
                     } else {
                       await vault.saveSession(
-                        { id: id(), start: Date.now(), end: null, note: "" },
+                        {
+                          id: id(),
+                          start: Date.now(),
+                          end: null,
+                          note: "",
+                          ...(gearId ? { gearId } : {}),
+                        },
                         revision,
                       );
                       setMessage("已开始记录佩戴时间");
@@ -380,6 +470,62 @@ function Unlocked({
                 {active ? "结束本次佩戴" : "开始佩戴"}
                 {active ? <Timer size={18} /> : <Plus size={19} />}
               </button>
+              {!active && settings.gears.some((g) => !g.archived) && (
+                <label className="field">
+                  本次佩戴装备
+                  <select
+                    value={gearId}
+                    onChange={(e) => setGearId(e.target.value)}
+                  >
+                    <option value="">不选择装备</option>
+                    {settings.gears
+                      .filter((g) => !g.archived)
+                      .map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              )}
+              {active && (
+                <>
+                  <button
+                    className="secondary wide"
+                    disabled={busy}
+                    onClick={() =>
+                      void run(async () => {
+                        const timestamp = Date.now();
+                        await vault.saveSession(
+                          {
+                            ...active,
+                            breaks: paused
+                              ? active.breaks!.map((b, i) =>
+                                  i === active.breaks!.length - 1
+                                    ? { ...b, end: timestamp }
+                                    : b,
+                                )
+                              : [
+                                  ...(active.breaks ?? []),
+                                  { start: timestamp, end: null },
+                                ],
+                          },
+                          revision,
+                        );
+                      })
+                    }
+                  >
+                    {paused ? "恢复佩戴" : "清洁小憩"}
+                  </button>
+                  {paused && (
+                    <p className="hero-start">
+                      小憩已持续{" "}
+                      {duration(now - active.breaks!.at(-1)!.start, true)} ·
+                      此段时间不计入佩戴
+                    </p>
+                  )}
+                </>
+              )}
             </section>
             <div className="home-metrics">
               <div>
@@ -493,7 +639,10 @@ function Unlocked({
               key={formKey}
               vault={vault}
               revision={revision}
-              wearing={!!active}
+              wearing={!!active && !paused}
+              sessions={sessions}
+              settings={settings}
+              active={paused ? undefined : active}
               onSave={save}
               onCancel={() => navigate("home")}
             />
@@ -504,6 +653,7 @@ function Unlocked({
             entries={entries}
             sessions={sessions}
             now={now}
+            settings={settings}
             onDay={(day) => {
               setSelected(day);
               navigate("calendar");
@@ -521,6 +671,7 @@ function Unlocked({
             offlineReady={offlineReady}
             needRefresh={needRefresh}
             onUpdate={onUpdate}
+            settings={settings}
           />
         )}
         <footer className="page-footer">
@@ -554,7 +705,10 @@ function Unlocked({
             entry={edit}
             vault={vault}
             revision={revision}
-            wearing={!!active}
+            wearing={!!active && !paused}
+            sessions={sessions}
+            settings={settings}
+            active={paused ? undefined : active}
             onSave={save}
             onCancel={() => setEdit(null)}
             onDelete={(e) => setDeletion({ entry: e })}
@@ -590,7 +744,7 @@ function Unlocked({
                   {s.note && <small>{s.note}</small>}
                 </span>
                 <span>
-                  {duration((s.end ?? now) - s.start)}
+                  {duration(totalWear([s], now))}
                   <ChevronRight size={16} />
                 </span>
               </button>
@@ -613,6 +767,7 @@ function Unlocked({
             session={sessionModal === true ? undefined : sessionModal}
             vault={vault}
             revision={revision}
+            settings={settings}
             onSave={async () => {
               await refresh();
               setSessionModal(null);
@@ -657,6 +812,6 @@ function Unlocked({
           onClose={() => setViewer(null)}
         />
       )}
-    </div>
+    </PrivateShell>
   );
 }

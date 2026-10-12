@@ -8,13 +8,49 @@ export interface Entry {
   photoIds: string[];
   createdAt: number;
   updatedAt: number;
+  gearId?: string;
+  sessionId?: string;
 }
 export interface WearSession {
   id: string;
   start: number;
   end: number | null;
   note: string;
+  gearId?: string;
+  breaks?: WearBreak[];
 }
+export interface WearBreak {
+  start: number;
+  end: number | null;
+  note?: string;
+}
+export interface Gear {
+  id: string;
+  name: string;
+  material: string;
+  size: string;
+  acquired: string;
+  started: string;
+  note: string;
+  archived: boolean;
+}
+export interface CheckinTemplate {
+  id: string;
+  name: string;
+  text: string;
+}
+export interface JournalSettings {
+  templates: CheckinTemplate[];
+  fastTags: string[];
+  gears: Gear[];
+  breakThresholdMinutes: number;
+}
+export const defaultSettings = (): JournalSettings => ({
+  templates: [],
+  fastTags: ["日常", "清洁", "运动", "不适", "调整"],
+  gears: [],
+  breakThresholdMinutes: 30,
+});
 export interface Sealed {
   iv: Uint8Array;
   data: Uint8Array;
@@ -35,6 +71,24 @@ export interface VaultConfig {
   salt: Uint8Array;
   iterations: number;
   wrapped: Sealed;
+}
+export const QUICK_UNLOCK_META = "quick-unlock";
+export interface QuickUnlockBinding {
+  version: 1;
+  id: string;
+  vaultId: string;
+  configFingerprint: string;
+  origin: string;
+  rpId: string;
+  credentialId: Uint8Array;
+  publicKey: Uint8Array;
+  prfInput: Uint8Array;
+  hkdfSalt: Uint8Array;
+  windowHours: 1 | 12 | 24;
+  authorizedAt: number;
+  expiresAt: number;
+  wrapped: Sealed;
+  authorization: Sealed;
 }
 export interface PhotoInput {
   id: string;
