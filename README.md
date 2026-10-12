@@ -21,6 +21,8 @@
 3. 测试通过后 `Deploy GitHub Pages` 自动构建 `/lockweb/` 路径并发布。也可以在 Actions 手动运行部署工作流。
 4. 确认 Pages 和 Actions 都显示成功后，在 Safari 打开实际部署地址。
 
+首次发布若提示 `Get Pages site failed`，表示仓库尚未启用 Pages。先完成第 1 步，再在 Actions → Deploy GitHub Pages → Run workflow 启动发布。默认工作流令牌不能自动初始化 Pages，项目不会请求或保存你的访问令牌。
+
 **仓库可以保持私有，但 GitHub Pages 的私有仓库功能需要相应套餐（如 GitHub Pro）；GitHub Free 通常要求公开仓库。** 本项目不自动改变仓库可见性。代码公开并不公开设备数据库；网站资源公开也不共享任何人的本地照片。GitHub Pages 官方说明：<https://docs.github.com/en/pages/getting-started-with-github-pages>。
 
 如果套餐不支持或不想公开源码，可将 `dist/` 部署到支持 HTTPS 的其它静态托管，例如 Cloudflare Pages（构建命令 `npm run build`、输出 `dist`，移除 `/lockweb/` 环境变量）。静态站点首次载入和检查更新会访问托管服务，但个人记录与照片不会发送到该服务。
@@ -133,7 +135,7 @@ Service Worker 只预缓存编译后的程序、离线 HEIC 转换代码、图�
 
 本地已验证：TypeScript 编译/生产构建；20 项 Vitest 单元与 fake-indexeddb 集成测试，包括跨午夜、时段重叠、夏令时、连续天数、密码错误/篡改、全部照片/缩略图备份恢复、不同本地密码恢复、删除关联照片、回滚、并发修订号、数据库 v1 → v2 迁移。
 
-Playwright 测试覆盖完整离线验收链路与照片编辑删除、锁定、深色/移动布局。此编写环境的浏览器下载失败，所以本地未完成 Playwright 浏览器执行；仓库 CI 配置在可下载浏览器的 GitHub Runner 上运行 Chromium 和 WebKit。CI 未成功前不能把套件存在当作验收通过。
+GitHub CI 已实际通过 20 项单元/数据库测试与 4 项 Playwright 测试（Chromium、WebKit 移动视口各 2 项），覆盖完整离线验收链路、恢复后逐张打开完整照片、编辑删除、锁定、深色/移动布局，以及计时刷新时的输入焦点。已检查浏览器截图和 `/lockweb/` 路径构建。验证记录：<https://github.com/hu-border-collie/lockweb/actions/runs/38194046903>。此编写环境无法下载浏览器，浏览器验证在 GitHub Runner 上完成。
 
 **未在真实 iPhone 上验证。** WebKit 自动化也不等同于真实 iPhone。正式使用前用不敏感的测试照片检查：
 
