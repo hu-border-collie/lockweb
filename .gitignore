@@ -1,0 +1,9 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+*.tsbuildinfo
+.env*
+public/icons/
+public/splash/
+tests/fixture.jpg

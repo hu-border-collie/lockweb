@@ -1,0 +1,40 @@
+{
+  "name": "private-log-pwa",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "icons": "node scripts/icons.mjs",
+    "check": "tsc -b",
+    "prebuild": "node scripts/icons.mjs",
+    "pretest:e2e": "node scripts/fixture.mjs"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "dexie": "^4.0.11",
+    "recharts": "^3.0.0",
+    "lucide-react": "^0.468.0",
+    "heic-to": "^1.5.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.5.0",
+    "@tailwindcss/vite": "^4.1.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5",
+    "vite-plugin-pwa": "^1.0.0",
+    "vitest": "^3.2.0",
+    "@playwright/test": "^1.51.0",
+    "fake-indexeddb": "^6.0.0",
+    "sharp": "^0.34.0",
+    "@types/node": "^22.0.0"
+  }
+}

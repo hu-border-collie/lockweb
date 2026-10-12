@@ -1,0 +1,321 @@
+import { beginSystemDialog, endSystemDialog } from "../lib/privacy";
+import { useEffect, useRef, useState } from "react";
+import { Camera, ImagePlus, X, ChevronDown, Check } from "lucide-react";
+import { Photo } from "./Shared";
+import { id, type Entry, type PhotoInput } from "../lib/models";
+import type { Vault } from "../lib/db";
+import { userError } from "../lib/db";
+import { localInput, fromInput } from "../lib/time";
+import { processImage } from "../lib/images";
+export function EntryForm({
+  entry,
+  vault,
+  revision,
+  wearing,
+  onSave,
+  onDelete,
+  onCancel,
+}: {
+  entry?: Entry;
+  vault: Vault;
+  revision: number;
+  wearing: boolean;
+  onSave: () => Promise<void>;
+  onDelete?: (entry: Entry) => void;
+  onCancel: () => void;
+}) {
+  const [initialTimestamp] = useState(() => entry?.timestamp ?? Date.now());
+  const [recordId] = useState(() => entry?.id ?? id());
+  const [photos, setPhotos] = useState<PhotoInput[]>([]);
+  const [kept, setKept] = useState(entry?.photoIds ?? []);
+  const [time, setTime] = useState(localInput(initialTimestamp));
+  const [note, setNote] = useState(entry?.note ?? "");
+  const [tags, setTags] = useState(entry?.tags.join("，") ?? "");
+  const [state, setState] = useState<Entry["wearing"]>(
+    entry?.wearing ?? (wearing ? "on" : "unspecified"),
+  );
+  const [comfort, setComfort] = useState(entry?.comfort ?? null);
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const [details, setDetails] = useState(!!entry);
+  const camera = useRef<HTMLInputElement>(null),
+    album = useRef<HTMLInputElement>(null);
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+  useEffect(() => {
+    const inputs = [camera.current, album.current];
+    inputs.forEach((input) =>
+      input?.addEventListener("cancel", endSystemDialog),
+    );
+    return () =>
+      inputs.forEach((input) =>
+        input?.removeEventListener("cancel", endSystemDialog),
+      );
+  }, []);
+  async function add(files: FileList | null) {
+    if (!files?.length) return;
+    setBusy("正在处理照片…");
+    setError("");
+    const results: PhotoInput[] = [];
+    let failed = "";
+    try {
+      for (const file of Array.from(files)) {
+        if (!alive.current) return;
+        results.push(await processImage(file));
+      }
+    } catch (e) {
+      failed = userError(e);
+    } finally {
+      if (alive.current) {
+        setPhotos((previous) => [...previous, ...results]);
+        setBusy("");
+        setError(failed);
+      }
+    }
+  }
+  async function save() {
+    setBusy("正在加密保存…");
+    setError("");
+    try {
+      const timestamp =
+        time === localInput(initialTimestamp)
+          ? initialTimestamp
+          : fromInput(time);
+      await vault.saveEntry(
+        {
+          id: recordId,
+          timestamp,
+          note: note.trim(),
+          tags: [
+            ...new Set(
+              tags
+                .split(/[,，]/)
+                .map((t) => t.trim())
+                .filter(Boolean),
+            ),
+          ],
+          wearing: state,
+          comfort,
+          photoIds: [...kept, ...photos.map((p) => p.id)],
+          createdAt: entry?.createdAt ?? Date.now(),
+          updatedAt: Date.now(),
+        },
+        photos,
+        revision,
+      );
+      await onSave();
+    } catch (e) {
+      if (alive.current) setError(userError(e));
+    } finally {
+      if (alive.current) setBusy("");
+    }
+  }
+  return (
+    <div className="entry-form">
+      <input
+        ref={camera}
+        className="sr-only"
+        aria-label="使用相机拍照"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={(e) => {
+          endSystemDialog();
+          void add(e.target.files);
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={album}
+        className="sr-only"
+        aria-label="从相册选择照片"
+        type="file"
+        accept="image/*,.heic,.heif"
+        multiple
+        onChange={(e) => {
+          endSystemDialog();
+          void add(e.target.files);
+          e.target.value = "";
+        }}
+      />
+      <div className="capture-zone">
+        <div className="camera-symbol">
+          <Camera size={38} strokeWidth={1.4} />
+        </div>
+        <h3>{entry ? "编辑这次记录" : "留住此刻"}</h3>
+        <p>每次打卡，都有自己的照片与时间</p>
+        <div className="capture-buttons">
+          <button
+            className="primary"
+            disabled={!!busy}
+            onClick={() => {
+              beginSystemDialog();
+              camera.current?.click();
+            }}
+          >
+            <Camera size={19} />
+            拍照
+          </button>
+          <button
+            className="secondary"
+            disabled={!!busy}
+            onClick={() => {
+              beginSystemDialog();
+              album.current?.click();
+            }}
+          >
+            <ImagePlus size={19} />
+            选照片
+          </button>
+        </div>
+      </div>
+      {kept.length + photos.length > 0 && (
+        <>
+          <div className="section-line">
+            <h3>本次照片</h3>
+            <span className="muted">{kept.length + photos.length} 张</span>
+          </div>
+          <div className="draft-photos">
+            {kept.map((p) => (
+              <div key={p}>
+                <Photo id={p} vault={vault} />
+                <button
+                  disabled={!!busy}
+                  className="remove-photo"
+                  aria-label="移除已有照片"
+                  onClick={() => setKept(kept.filter((i) => i !== p))}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+            {photos.map((p) => (
+              <div key={p.id}>
+                <Photo id={p.id} vault={vault} blob={p.thumb} />
+                <button
+                  disabled={!!busy}
+                  className="remove-photo"
+                  aria-label="移除新照片"
+                  onClick={() => setPhotos(photos.filter((i) => i.id !== p.id))}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      <label className="field">
+        打卡时间
+        <input
+          type="datetime-local"
+          value={time}
+          max={localInput(Date.now())}
+          onChange={(e) => setTime(e.target.value)}
+          required
+        />
+      </label>
+      <button
+        className="details-toggle"
+        onClick={() => setDetails(!details)}
+        aria-expanded={details}
+      >
+        <span>
+          添加备注与感受 <small>可选</small>
+        </span>
+        <ChevronDown
+          size={18}
+          style={{ transform: details ? "rotate(180deg)" : undefined }}
+        />
+      </button>
+      {details && (
+        <div className="details">
+          <label className="field">
+            备注
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              maxLength={10000}
+              placeholder="今天感觉怎么样？"
+              rows={3}
+            />
+          </label>
+          <label className="field">
+            标签
+            <input
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              maxLength={500}
+              placeholder="用逗号分隔，例如：日常，清洁"
+            />
+          </label>
+          <label className="field">
+            佩戴状态
+            <select
+              value={state}
+              onChange={(e) => setState(e.target.value as Entry["wearing"])}
+            >
+              <option value="unspecified">不记录</option>
+              <option value="on">佩戴中</option>
+              <option value="off">未佩戴</option>
+            </select>
+          </label>
+          <div className="field">
+            舒适度
+            <div className="comfort-options">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  className={comfort === n ? "selected" : ""}
+                  onClick={() => setComfort(comfort === n ? null : n)}
+                  aria-pressed={comfort === n}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <small>1 较不舒服 · 5 很舒服 · 再次点选可取消</small>
+          </div>
+        </div>
+      )}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      {busy && (
+        <p className="muted" role="status">
+          {busy}
+        </p>
+      )}
+      <button
+        className="primary wide"
+        disabled={!!busy || !(kept.length + photos.length)}
+        onClick={() => void save()}
+      >
+        <Check size={20} />
+        {busy || "保存打卡"}
+      </button>
+      <p className="privacy-caption">
+        照片与记录仅保存到本机 · 不会开始新的佩戴时段
+      </p>
+      {entry && onDelete && (
+        <button
+          className="danger-text wide"
+          disabled={!!busy}
+          onClick={() => onDelete(entry)}
+        >
+          删除这次打卡及照片
+        </button>
+      )}
+      <button className="text-button wide" disabled={!!busy} onClick={onCancel}>
+        取消
+      </button>
+    </div>
+  );
+}
