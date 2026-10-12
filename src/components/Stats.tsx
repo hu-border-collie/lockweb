@@ -154,6 +154,7 @@ export function Stats({
                 }}
               />
               <Bar
+                isAnimationActive={false}
                 yAxisId="count"
                 name="打卡次数"
                 dataKey="checkins"
@@ -162,6 +163,7 @@ export function Stats({
                 maxBarSize={24}
               />
               <Line
+                isAnimationActive={false}
                 yAxisId="hours"
                 name="佩戴小时"
                 dataKey="hours"

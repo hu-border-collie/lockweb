@@ -9,7 +9,7 @@ export default defineConfig({
     tailwind(),
     VitePWA({
       registerType: "prompt",
-      includeAssets: ["icons/*.png", "splash/*.png"],
+      includeManifestIcons: false,
       manifest: {
         name: "私记 · 本地记录",
         short_name: "私记",
@@ -42,7 +42,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,png,webmanifest}"],
+        globPatterns: ["**/*.{js,css,html,png}"],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         cleanupOutdatedCaches: true,
         runtimeCaching: [],
@@ -50,5 +50,5 @@ export default defineConfig({
       },
     }),
   ],
-  build: { target: "es2022", chunkSizeWarningLimit: 1600 },
+  build: { target: "es2022", chunkSizeWarningLimit: 3500 },
 });

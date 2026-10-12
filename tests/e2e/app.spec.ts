@@ -143,7 +143,25 @@ test("complete offline acceptance: multiple checkins, reopen, views, wear time, 
     .getByRole("button", { name: "日历", exact: true })
     .click();
   await expect(page.locator("article.record")).toHaveCount(2);
-  await expect(page.locator("article.record img")).toHaveCount(3);
+  const restoredPhotos = page.locator("article.record .photo-thumb");
+  await expect(restoredPhotos).toHaveCount(3);
+  for (let i = 0; i < 3; i++) {
+    await restoredPhotos.nth(i).scrollIntoViewIfNeeded();
+    await expect(restoredPhotos.nth(i).locator("img")).toBeVisible();
+    await restoredPhotos.nth(i).click();
+    const full = page
+      .getByRole("dialog", { name: "照片全屏浏览" })
+      .locator("img");
+    await expect(full).toBeVisible();
+    expect(await full.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBe(
+      800,
+    );
+    await page.getByRole("button", { name: "关闭照片" }).click();
+  }
+  await page.screenshot({
+    path: testInfo.outputPath("calendar.png"),
+    fullPage: true,
+  });
   expect(external).toEqual([]);
   const cached = await page.evaluate(async () => {
     const urls: string[] = [];
@@ -169,7 +187,10 @@ test("edit and delete photos, password lock, responsive dark appearance", async 
     .getByRole("button", { name: /编辑/ })
     .click();
   await page.getByRole("button", { name: "移除已有照片" }).first().click();
+  await page.clock.install();
   await page.getByLabel("备注", { exact: true }).fill("edited");
+  await page.clock.runFor(2100);
+  await expect(page.getByLabel("备注", { exact: true })).toBeFocused();
   await page.getByRole("button", { name: "保存打卡", exact: true }).click();
   await expect(page.getByText("edited", { exact: true })).toBeVisible();
   await page

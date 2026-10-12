@@ -33,13 +33,15 @@ export function Modal({
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     const old = document.activeElement as HTMLElement;
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     ref.current?.focus();
     const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") closeRef.current();
       if (e.key === "Tab") {
         const els = Array.from(
           ref.current?.querySelectorAll<HTMLElement>(
@@ -67,7 +69,7 @@ export function Modal({
       document.removeEventListener("keydown", key);
       old?.focus();
     };
-  }, [onClose]);
+  }, []);
   return (
     <div className="modal-backdrop">
       <div
