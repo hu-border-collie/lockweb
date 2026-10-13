@@ -140,7 +140,7 @@ export function FateWheel({ vault, state, entries, revision, now, refresh }: {
       <h3><Sparkles size={18}/>{last.slice.label}</h3>
       <p className="muted">{dateTime(last.timestamp)} · {last.mode === "ritual" ? "每日仪式" : "自由沙盒"}{last.slice.kind === "extra" ? ` · 追加 ${last.slice.extraMinutes} 分钟` : ""}</p>
       {last.attachedEntryId ? <p className="muted">已写入打卡备注</p> : last.day === dayKey(now) && todayEntries.length > 0 && <>
-        <label className="field">写入今日打卡<select value={chosenEntry} onChange={(e) => setEntryId(e.target.value)}>{todayEntries.map((e) => <option key={e.id} value={e.id}>{dateTime(e.timestamp)} · {e.photoIds.length} 张照片</option>)}</select></label>
+        <label className="field">写入今日打卡<select aria-label="写入今日打卡" value={chosenEntry} onChange={(e) => setEntryId(e.target.value)}>{todayEntries.map((e) => <option key={e.id} value={e.id}>{dateTime(e.timestamp)} · {e.photoIds.length} 张照片</option>)}</select></label>
         <button className="secondary wide" disabled={attachmentBusy} onClick={async () => {
                     setAttachmentBusy(true);
                     setError("");
@@ -195,7 +195,7 @@ function FateOptions({ vault, config, revision, refresh, onClose }: {
         <div className="section-line"><h3>扇区 {i + 1}</h3><button className="text-button" aria-label={`删除扇区 ${i + 1}`} disabled={draft.slices.length <= 2} onClick={() => update({ ...draft, slices: draft.slices.filter((x) => x.id !== s.id) })}>删除</button></div>
         <label className="field">扇区 {i + 1} 名称<input maxLength={100} value={s.label} onChange={(e) => slice(s.id, { label: e.target.value })}/></label>
         <div className="fate-editor-grid">
-          <label className="field">扇区 {i + 1} 类型<select value={s.kind} onChange={(e) => { const kind = e.target.value as FateKind; slice(s.id, { kind, extraMinutes: kind === "extra" ? 60 : 0 }); }}>{Object.entries(kindNames).map(([value, name]) => <option key={value} value={value}>{name}</option>)}</select></label>
+          <label className="field">扇区 {i + 1} 类型<select aria-label={`扇区 ${i + 1} 类型`} value={s.kind} onChange={(e) => { const kind = e.target.value as FateKind; slice(s.id, { kind, extraMinutes: kind === "extra" ? 60 : 0 }); }}>{Object.entries(kindNames).map(([value, name]) => <option key={value} value={value}>{name}</option>)}</select></label>
           <label className="field">扇区 {i + 1} 权重<input type="number" min={1} max={10000} step={1} value={s.weight || ""} onChange={(e) => slice(s.id, { weight: Number(e.target.value) })}/></label>
           <label className="field">扇区 {i + 1} 颜色<input type="color" value={s.color} onChange={(e) => slice(s.id, { color: e.target.value })}/></label>
           {s.kind === "extra" && <label className="field">扇区 {i + 1} 加时分钟<input type="number" min={1} max={10080} step={1} value={s.extraMinutes || ""} onChange={(e) => slice(s.id, { extraMinutes: Number(e.target.value) })}/></label>}
