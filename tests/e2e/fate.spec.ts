@@ -12,7 +12,7 @@ async function nav(page: Page, name: string) {
 }
 async function unlock(page: Page) {
     await page.getByLabel("解锁密码", { exact: true }).fill("test-password");
-    await page.getByRole("button", { name: "解锁", exact: true }).click();
+    await page.getByRole("button", { name: "解锁私记", exact: true }).click();
     await expect(page.getByRole("button", { name: "命运轮盘" })).toBeVisible();
 }
 test("offline ritual requires a photo, persists cooldown and appends one result to today's note", async ({ page, context }, info) => {
