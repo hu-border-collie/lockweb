@@ -29,6 +29,7 @@ test("offline ritual requires a photo, persists cooldown and appends one result 
     await page.getByRole("dialog", { name: "命运轮盘", exact: true }).getByRole("button", { name: "关闭", exact: true }).click();
     await nav(page, "打卡");
     await page.getByLabel("从相册选择照片").setInputFiles(path.resolve("tests/fixture.jpg"));
+    await page.getByRole("button", { name: /添加备注与感受/ }).click();
     await page.getByLabel("备注", { exact: true }).fill("原有备注");
     await expect(page.getByRole("button", { name: "保存打卡", exact: true })).toBeEnabled();
     await page.getByRole("button", { name: "保存打卡", exact: true }).click();
