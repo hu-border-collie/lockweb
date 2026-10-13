@@ -15,6 +15,7 @@ import { dayKey } from "./time";
 import { validateManifest } from "./backup";
 import { makeVault, sealJSON, openJSON, seal, open } from "./crypto";
 import { validateSession } from "./time";
+import { FATE_META, MAX_FATE_DRAWS, defaultFate, validateFateConfig, validateFateState, pickFate, ritualStatus, fateNote, type FateState, type FateConfig, type FateDraw } from "./fate";
 export class PrivateDB extends Dexie {
   meta!: Table<{ key: string; value: unknown }, string>;
   entries!: Table<Row, string>;
@@ -140,6 +141,7 @@ export class Vault {
         settings: (await this.database.meta.get("journal-settings"))?.value as
           | Row
           | undefined,
+        fate: (await this.database.meta.get(FATE_META))?.value as Row | undefined,
         revision:
           ((await this.database.meta.get("revision"))?.value as number) ?? 0,
       }),
@@ -156,6 +158,9 @@ export class Vault {
         ),
       ),
       revision: rows.revision,
+      fate: rows.fate
+        ? validateFateState(await openJSON<FateState>(this.key, rows.fate.sealed, FATE_META))
+        : defaultFate(),
       settings: rows.settings
         ? validateSettings(
             await openJSON<JournalSettings>(
@@ -330,6 +335,7 @@ export class Vault {
       await this.database.sessions.clear();
       await this.database.photos.clear();
       await this.database.meta.delete(QUICK_UNLOCK_META);
+      await this.database.meta.delete(FATE_META);
     });
   }
   async replace(
@@ -338,13 +344,15 @@ export class Vault {
     photos: PhotoInput[],
     revision: number,
     settings: JournalSettings = defaultSettings(),
+    fate: FateState = defaultFate(),
   ) {
     validateManifest({
       format: "private-log",
-      version: 2,
+      version: 3,
       entries,
       sessions,
       settings,
+      fate,
     });
     const expected = new Set(entries.flatMap((e) => e.photoIds));
     if (
@@ -357,6 +365,7 @@ export class Vault {
       id: "journal-settings",
       sealed: await sealJSON(this.key, settings, "journal-settings"),
     };
+    const fateRow = { id: FATE_META, sealed: await sealJSON(this.key, fate, FATE_META) };
     const er = await Promise.all(
       entries.map(async (e) => ({
         id: e.id,
@@ -402,6 +411,57 @@ export class Vault {
         value: settingRow,
       });
       await this.database.meta.delete(QUICK_UNLOCK_META);
+      await this.database.meta.put({ key: FATE_META, value: fateRow });
+    });
+  }
+  async saveFateConfig(config: FateConfig, revision: number) {
+    validateFateConfig(config);
+    const snap = await this.snapshot();
+    const fate = validateFateState({ ...snap.fate, config });
+    const row = { id: FATE_META, sealed: await sealJSON(this.key, fate, FATE_META) };
+    await this.mutate(revision, async () => {
+      await this.database.meta.put({ key: FATE_META, value: row });
+    });
+  }
+  async drawFate(revision: number): Promise<FateDraw> {
+    const snap = await this.snapshot(), now = Date.now();
+    if (snap.fate.draws.length >= MAX_FATE_DRAWS) throw new Error("轮盘记录已达 20000 次，请先备份并整理数据");
+    if (snap.fate.config.mode === "ritual") {
+      const status = ritualStatus(snap.fate, snap.entries, now);
+      if (status !== "今日仪式已点亮") throw new Error(status);
+    }
+    const active = snap.sessions.find((s) => s.end === null);
+    const draw: FateDraw = {
+      id: crypto.randomUUID(), timestamp: now, day: dayKey(now),
+      timezoneOffset: new Date(now).getTimezoneOffset(), mode: snap.fate.config.mode,
+      wheelName: snap.fate.config.name, slice: pickFate(snap.fate.config),
+      totalWeight: snap.fate.config.slices.reduce((n, s) => n + s.weight, 0),
+      ...(active ? { sessionId: active.id } : {}),
+    };
+    const fate = validateFateState({ ...snap.fate, draws: [...snap.fate.draws, draw] });
+    const row = { id: FATE_META, sealed: await sealJSON(this.key, fate, FATE_META) };
+    // Revision validation and the sealed result are committed in one transaction.
+    // The caller starts animation only after this promise succeeds.
+    await this.mutate(revision, async () => {
+      await this.database.meta.put({ key: FATE_META, value: row });
+    });
+    return draw;
+  }
+  async attachFateNote(drawId: string, entryId: string, revision: number) {
+    const snap = await this.snapshot(), today = dayKey(Date.now());
+    const draw = snap.fate.draws.find((d) => d.id === drawId);
+    const entry = snap.entries.find((e) => e.id === entryId);
+    if (!draw || !entry || draw.day !== today || dayKey(entry.timestamp) !== today)
+      throw new Error("请选择今日判定和今日打卡");
+    if (draw.attachedEntryId) throw new Error("这次判定已写入打卡");
+    const note = [entry.note, fateNote(draw)].filter(Boolean).join("\n");
+    if (note.length > 10000) throw new Error("打卡备注过长，请先缩短备注");
+    const entryRow = { id: entry.id, sealed: await sealJSON(this.key, { ...entry, note, updatedAt: Date.now() }, `entry:${entry.id}`) };
+    const fate = { ...snap.fate, draws: snap.fate.draws.map((d) => d.id === drawId ? { ...d, attachedEntryId: entry.id } : d) };
+    const fateRow = { id: FATE_META, sealed: await sealJSON(this.key, fate, FATE_META) };
+    await this.mutate(revision, async () => {
+      await this.database.entries.put(entryRow);
+      await this.database.meta.put({ key: FATE_META, value: fateRow });
     });
   }
   async saveSettings(settings: JournalSettings, revision: number) {

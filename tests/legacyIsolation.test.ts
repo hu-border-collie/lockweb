@@ -1,5 +1,6 @@
 import Dexie from "dexie";
 import { describe, expect, it, vi } from "vitest";
+import { defaultFate } from "../src/lib/fate";
 import { PrivateDB, Vault, getConfig } from "../src/lib/db";
 import { makeVault, sealJSON, seal, openJSON } from "../src/lib/crypto";
 import {
@@ -100,6 +101,7 @@ describe("legacy client isolation", () => {
         const expected = await vault.snapshot();
         expect(expected).toEqual({
           entries: [fixture.entry],
+          fate: defaultFate(),
           sessions: [fixture.session],
           settings: fixture.settings,
           revision: 7,

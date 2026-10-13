@@ -194,7 +194,7 @@ describe("journal extensions", () => {
       }),
     ).toThrow();
   });
-  it("encrypts settings, rejects stale edits and keeps settings and references through a full v3 restore", async () => {
+  it("encrypts settings, rejects stale edits and keeps settings and references through a full v4 restore", async () => {
     const prefs = settings();
     await vault.saveSettings(prefs, 0);
     const raw = await db.meta.get("journal-settings");
