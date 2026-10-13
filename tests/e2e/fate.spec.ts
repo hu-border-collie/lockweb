@@ -92,7 +92,7 @@ test("custom weighted sandbox persists before animation and preserves results wh
     const badge = await page.locator(".fate-session-badge").innerText();
     await page.reload();
     await unlock(page);
-    await expect(page.locator(".fate-session-badge")).toHaveText(badge);
+    await expect(page.locator(".fate-session-badge")).toHaveText(badge, { useInnerText: true });
     await nav(page, "统计");
     await expect(page.locator(".fate-history")).toContainText("共 1 次 · 每日仪式 0 次 · 自由沙盒 1 次");
     const ciphertext = await page.evaluate(() => new Promise<string>((resolve, reject) => {
