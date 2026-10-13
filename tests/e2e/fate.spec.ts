@@ -45,7 +45,7 @@ test("offline ritual requires a photo, persists cooldown and appends one result 
     await page.reload();
     await unlock(page);
     await page.getByRole("button", { name: "命运轮盘" }).click();
-    await expect(page.getByText("今日仪式已完成", { exact: true })).toBeVisible();
+    await expect(page.locator(".fate-rule")).toHaveText("今日仪式已完成");
     await expect(page.getByRole("button", { name: "转动轮盘", exact: true })).toBeDisabled();
     await expect(page.getByText("已写入打卡备注", { exact: true })).toBeVisible();
     await page.getByRole("dialog", { name: "命运轮盘", exact: true }).getByRole("button", { name: "关闭", exact: true }).click();
