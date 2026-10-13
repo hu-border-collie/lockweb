@@ -22,7 +22,7 @@ export function intervals(
   now = Date.now(),
 ): [number, number][] {
   const sorted = sessions
-    .map((s) => [s.start, Math.min(s.end ?? now, now)] as [number, number])
+    .flatMap((s) => sessionIntervals(s, now))
     .filter(([a, b]) => Number.isFinite(a) && Number.isFinite(b) && b > a)
     .sort((a, b) => a[0] - b[0]);
   const result: [number, number][] = [];
@@ -32,6 +32,42 @@ export function intervals(
     else result.push([a, b]);
   }
   return result;
+}
+export function sessionIntervals(
+  s: WearSession,
+  now = Date.now(),
+): [number, number][] {
+  const stop = Math.min(s.end ?? now, now);
+  let cursor = s.start;
+  const result: [number, number][] = [];
+  for (const b of s.breaks ?? []) {
+    const start = Math.min(b.start, stop),
+      end = Math.min(b.end ?? now, stop);
+    if (start > cursor) result.push([cursor, start]);
+    cursor = Math.max(cursor, end);
+  }
+  if (cursor < stop) result.push([cursor, stop]);
+  return result;
+}
+export function longestContinuous(
+  s: WearSession,
+  now: number,
+  thresholdMinutes: number,
+) {
+  // Short breaks preserve the cycle, but never contribute to actual worn time.
+  const stop = Math.min(s.end ?? now, now);
+  let cursor = s.start,
+    run = 0,
+    longest = 0;
+  for (const b of s.breaks ?? []) {
+    if (b.start >= stop) break;
+    run += Math.max(0, b.start - cursor);
+    longest = Math.max(longest, run);
+    if (Math.min(b.end ?? now, stop) - b.start > thresholdMinutes * 60000)
+      run = 0;
+    cursor = Math.min(b.end ?? now, stop);
+  }
+  return Math.max(longest, run + Math.max(0, stop - cursor));
 }
 export const totalWear = (sessions: WearSession[], now = Date.now()) =>
   intervals(sessions, now).reduce((n, [a, b]) => n + b - a, 0);
@@ -78,6 +114,7 @@ export function summary(
   entries: Entry[],
   sessions: WearSession[],
   now = Date.now(),
+  thresholdMinutes = 30,
 ) {
   const today = dayKey(now);
   const date = new Date(now);
@@ -95,9 +132,7 @@ export function summary(
     total: totalWear(sessions, now),
     longestWear: Math.max(
       0,
-      ...sessions.map((s) =>
-        Math.max(0, Math.min(s.end ?? now, now) - s.start),
-      ),
+      ...sessions.map((s) => longestContinuous(s, now, thresholdMinutes)),
     ),
     ...streaks(entries, now),
   };
@@ -136,4 +171,27 @@ export function validateSession(session: WearSession, now = Date.now()) {
       session.end > now)
   )
     throw new Error("结束时间应晚于开始时间，且不能在未来");
+  if (
+    session.breaks !== undefined &&
+    (!Array.isArray(session.breaks) || session.breaks.length > 10000)
+  )
+    throw new Error("小憩记录格式无效");
+  let previous = session.start;
+  for (const [i, b] of (session.breaks ?? []).entries()) {
+    if (
+      !b ||
+      !Number.isFinite(b.start) ||
+      b.start < previous ||
+      b.start > (session.end ?? now) ||
+      (b.note !== undefined &&
+        (typeof b.note !== "string" || b.note.length > 10000)) ||
+      (b.end === null
+        ? session.end !== null || i !== session.breaks!.length - 1
+        : !Number.isFinite(b.end) ||
+          b.end <= b.start ||
+          b.end > (session.end ?? now))
+    )
+      throw new Error("小憩必须位于时段内，不能重叠，进行中的小憩只能在末尾");
+    previous = b.end ?? now;
+  }
 }

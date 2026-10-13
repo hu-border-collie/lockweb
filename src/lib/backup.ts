@@ -1,15 +1,18 @@
 import { seal, open, passwordKey, ITERATIONS } from "./crypto";
 import type { Entry, WearSession, PhotoInput } from "./models";
+import { defaultSettings, type JournalSettings } from "./models";
+import { validateLinks, validateSettings } from "./journal";
 import type { Vault } from "./db";
 import { validateSession } from "./time";
 const encoder = new TextEncoder(),
   decoder = new TextDecoder();
-const MAGIC = encoder.encode("PRIVATELOG2\n");
+const MAGIC = encoder.encode("PRIVATELOG3\n");
 const MAX_FRAME = 64 * 1024 * 1024;
 export interface BackupData {
   entries: Entry[];
   sessions: WearSession[];
   photos: PhotoInput[];
+  settings: JournalSettings;
 }
 const uint = (n: number) => {
   const v = new Uint8Array(4);
@@ -27,7 +30,7 @@ export async function exportBackup(
   const key = await passwordKey(password, salt);
   const header = encoder.encode(
     JSON.stringify({
-      version: 2,
+      version: 3,
       id: backupId,
       iterations: ITERATIONS,
       salt: Array.from(salt),
@@ -40,7 +43,7 @@ export async function exportBackup(
     const sealed = await seal(
       key,
       data,
-      `private-log-backup-v2:${backupId}:${index++}`,
+      `private-log-backup-v3:${backupId}:${index++}`,
     );
     parts.push(
       new Blob([uint(12 + sealed.data.length), sealed.iv, sealed.data]),
@@ -50,10 +53,11 @@ export async function exportBackup(
     encoder.encode(
       JSON.stringify({
         format: "private-log",
-        version: 1,
+        version: 2,
         exportedAt: Date.now(),
         entries: snapshot.entries,
         sessions: snapshot.sessions,
+        settings: snapshot.settings,
       }),
     ),
   );
@@ -79,16 +83,18 @@ function finite(v: unknown) {
 export function validateManifest(value: unknown): {
   entries: Entry[];
   sessions: WearSession[];
+  settings: JournalSettings;
 } {
   const m = value as {
     format: string;
     version: number;
     entries: Entry[];
     sessions: WearSession[];
+    settings?: JournalSettings;
   };
   if (
     m?.format !== "private-log" ||
-    m.version !== 1 ||
+    ![1, 2].includes(m.version) ||
     !Array.isArray(m.entries) ||
     !Array.isArray(m.sessions) ||
     m.entries.length > 100000 ||
@@ -141,7 +147,19 @@ export function validateManifest(value: unknown): {
     ids.add(s.id);
   }
   if (active > 1) throw new Error("备份中存在多个进行中的佩戴时段");
-  return { entries: m.entries, sessions: m.sessions };
+  if (
+    m.version === 1 &&
+    (m.settings !== undefined ||
+      m.entries.some(
+        (e) => e.gearId !== undefined || e.sessionId !== undefined,
+      ) ||
+      m.sessions.some((s) => s.gearId !== undefined || s.breaks !== undefined))
+  )
+    throw new Error("旧版备份包含未知扩展数据");
+  const settings =
+    m.version === 1 ? defaultSettings() : validateSettings(m.settings);
+  validateLinks(m.entries, m.sessions, settings);
+  return { entries: m.entries, sessions: m.sessions, settings };
 }
 export async function importBackup(
   blob: Blob,
@@ -158,15 +176,17 @@ export async function importBackup(
     position += count;
     return bytes;
   }
-  if (decoder.decode(await read(MAGIC.length)) !== decoder.decode(MAGIC))
-    throw new Error("这不是受支持的私记加密备份（版本 2）");
+  const magic = decoder.decode(await read(MAGIC.length));
+  const version =
+    magic === "PRIVATELOG2\n" ? 2 : magic === "PRIVATELOG3\n" ? 3 : 0;
+  if (!version) throw new Error("这不是受支持的私记加密备份（版本 2 / 3）");
   const lengthBytes = await read(4);
   const headerLength = new DataView(lengthBytes.buffer).getUint32(0);
   if (headerLength < 1 || headerLength > 2048)
     throw new Error("备份文件头损坏");
   const header = JSON.parse(decoder.decode(await read(headerLength)));
   if (
-    header.version !== 2 ||
+    header.version !== version ||
     !validId(header.id) ||
     !Number.isInteger(header.iterations) ||
     !Array.isArray(header.salt) ||
@@ -191,7 +211,7 @@ export async function importBackup(
       return await open(
         key,
         { iv, data },
-        `private-log-backup-v2:${header.id}:${index++}`,
+        `private-log-backup-v${version}:${header.id}:${index++}`,
       );
     } catch {
       throw new Error("备份密码不正确，或文件已损坏。现有记录未改变。");
@@ -199,7 +219,10 @@ export async function importBackup(
   }
   const manifestBytes = await frame();
   if (manifestBytes.length > 20 * 1024 * 1024) throw new Error("备份清单过大");
-  const manifest = validateManifest(JSON.parse(decoder.decode(manifestBytes)));
+  const manifestValue = JSON.parse(decoder.decode(manifestBytes));
+  if (manifestValue.version !== (version === 2 ? 1 : 2))
+    throw new Error("备份版本与清单不匹配");
+  const manifest = validateManifest(manifestValue);
   const photos: PhotoInput[] = [];
   for (const entry of manifest.entries)
     for (const id of entry.photoIds) {

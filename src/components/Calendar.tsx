@@ -3,7 +3,8 @@ import { ChevronLeft, ChevronRight, CalendarDays, Images } from "lucide-react";
 import type { Entry } from "../lib/models";
 import type { Vault } from "../lib/db";
 import { dayKey, parseDay } from "../lib/time";
-import { Empty, RecordCard } from "./Shared";
+import { Empty, RecordCard, Photo } from "./Shared";
+import { ComparePhotos, type ComparePhoto } from "./ComparePhotos";
 export function Calendar({
   entries,
   vault,
@@ -22,6 +23,9 @@ export function Calendar({
   const [month, setMonth] = useState(() => parseDay(selected));
   const [mode, setMode] = useState("calendar");
   const [limit, setLimit] = useState(20);
+  const [choosing, setChoosing] = useState(false);
+  const [chosen, setChosen] = useState<ComparePhoto[]>([]);
+  const [compare, setCompare] = useState<ComparePhoto[] | null>(null);
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
     for (const e of entries) {
@@ -132,6 +136,56 @@ export function Calendar({
           {mode === "calendar" ? filtered.length : entries.length} 次打卡
         </span>
       </div>
+      <button
+        className="secondary"
+        onClick={() => {
+          setChoosing(!choosing);
+          setChosen([]);
+        }}
+      >
+        {choosing ? "取消选择对比" : "选择照片对比"}
+      </button>
+      {choosing && (
+        <div className="card">
+          <p className="muted">
+            选择任意两张照片（可切换日期或加载更多记录）。
+          </p>
+          <div className="compare-picks">
+            {filtered.flatMap((e) =>
+              e.photoIds.map((id) => (
+                <label key={id}>
+                  <Photo id={id} vault={vault} />
+                  <span>
+                    <input
+                      type="checkbox"
+                      aria-label={`选择对比照片 ${id}`}
+                      checked={chosen.some((p) => p.id === id)}
+                      disabled={
+                        chosen.length === 2 && !chosen.some((p) => p.id === id)
+                      }
+                      onChange={(event) =>
+                        setChosen(
+                          event.target.checked
+                            ? [...chosen, { id, timestamp: e.timestamp }]
+                            : chosen.filter((p) => p.id !== id),
+                        )
+                      }
+                    />
+                    选择照片
+                  </span>
+                </label>
+              )),
+            )}
+          </div>
+          <button
+            className="primary wide"
+            disabled={chosen.length !== 2}
+            onClick={() => setCompare([...chosen])}
+          >
+            对比已选照片（{chosen.length}/2）
+          </button>
+        </div>
+      )}
       {filtered.length ? (
         filtered.map((e, i) => (
           <div key={e.id}>
@@ -163,6 +217,13 @@ export function Calendar({
         <button className="secondary wide" onClick={() => setLimit(limit + 20)}>
           加载更多记录
         </button>
+      )}
+      {compare && (
+        <ComparePhotos
+          photos={compare}
+          vault={vault}
+          onClose={() => setCompare(null)}
+        />
       )}
     </>
   );

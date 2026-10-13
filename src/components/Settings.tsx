@@ -16,6 +16,9 @@ import type { Vault } from "../lib/db";
 import { userError } from "../lib/db";
 import { exportBackup, importBackup, type BackupData } from "../lib/backup";
 import { Modal } from "./Shared";
+import { JournalOptions } from "./JournalOptions";
+import { BiometricSettings } from "./BiometricSettings";
+import type { JournalSettings } from "../lib/models";
 export type Theme = "system" | "light" | "dark";
 export function Settings({
   vault,
@@ -27,6 +30,7 @@ export function Settings({
   offlineReady,
   needRefresh,
   onUpdate,
+  settings,
 }: {
   vault: Vault;
   revision: number;
@@ -37,6 +41,7 @@ export function Settings({
   offlineReady: boolean;
   needRefresh: boolean;
   onUpdate: () => void;
+  settings: JournalSettings;
 }) {
   const [panel, setPanel] = useState("");
   const [password, setPassword] = useState("");
@@ -44,6 +49,7 @@ export function Settings({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [parsed, setParsed] = useState<BackupData | null>(null);
+  const [parsedRevision, setParsedRevision] = useState(0);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -164,6 +170,13 @@ export function Settings({
         </button>
       </div>
       <h3 className="group-label">设备与外观</h3>
+      <BiometricSettings vault={vault} revision={revision} refresh={refresh} />
+      <JournalOptions
+        vault={vault}
+        settings={settings}
+        revision={revision}
+        refresh={refresh}
+      />
       <div className="card">
         <label className="setting-label">
           <SunMoon size={20} />
@@ -267,7 +280,7 @@ export function Settings({
             if (!busy) setPanel("");
           }}
         >
-          <div className="form-stack">
+          <fieldset className="form-stack" disabled={!!busy}>
             {panel === "export" && (
               <>
                 <p className="muted">
@@ -378,6 +391,7 @@ export function Settings({
                   onClick={() =>
                     void run("正在验证备份…", async () => {
                       if (!file) throw new Error("请选择备份");
+                      setParsedRevision(revision);
                       setParsed(await importBackup(file, password));
                     })
                   }
@@ -400,7 +414,8 @@ export function Settings({
                             parsed.entries,
                             parsed.sessions,
                             parsed.photos,
-                            revision,
+                            parsedRevision,
+                            parsed.settings,
                           );
                           await refresh();
                           setParsed(null);
@@ -511,7 +526,7 @@ export function Settings({
                 {error}
               </p>
             )}
-          </div>
+          </fieldset>
         </Modal>
       )}
     </>
