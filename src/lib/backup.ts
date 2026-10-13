@@ -4,15 +4,17 @@ import { defaultSettings, type JournalSettings } from "./models";
 import { validateLinks, validateSettings } from "./journal";
 import type { Vault } from "./db";
 import { validateSession } from "./time";
+import { defaultFate, validateFateState, type FateState } from "./fate";
 const encoder = new TextEncoder(),
   decoder = new TextDecoder();
-const MAGIC = encoder.encode("PRIVATELOG3\n");
+const MAGIC = encoder.encode("PRIVATELOG4\n");
 const MAX_FRAME = 64 * 1024 * 1024;
 export interface BackupData {
   entries: Entry[];
   sessions: WearSession[];
   photos: PhotoInput[];
   settings: JournalSettings;
+  fate: FateState;
 }
 const uint = (n: number) => {
   const v = new Uint8Array(4);
@@ -30,7 +32,7 @@ export async function exportBackup(
   const key = await passwordKey(password, salt);
   const header = encoder.encode(
     JSON.stringify({
-      version: 3,
+      version: 4,
       id: backupId,
       iterations: ITERATIONS,
       salt: Array.from(salt),
@@ -43,7 +45,7 @@ export async function exportBackup(
     const sealed = await seal(
       key,
       data,
-      `private-log-backup-v3:${backupId}:${index++}`,
+      `private-log-backup-v4:${backupId}:${index++}`,
     );
     parts.push(
       new Blob([uint(12 + sealed.data.length), sealed.iv, sealed.data]),
@@ -53,11 +55,12 @@ export async function exportBackup(
     encoder.encode(
       JSON.stringify({
         format: "private-log",
-        version: 2,
+        version: 3,
         exportedAt: Date.now(),
         entries: snapshot.entries,
         sessions: snapshot.sessions,
         settings: snapshot.settings,
+        fate: snapshot.fate,
       }),
     ),
   );
@@ -84,6 +87,7 @@ export function validateManifest(value: unknown): {
   entries: Entry[];
   sessions: WearSession[];
   settings: JournalSettings;
+  fate: FateState;
 } {
   const m = value as {
     format: string;
@@ -91,10 +95,11 @@ export function validateManifest(value: unknown): {
     entries: Entry[];
     sessions: WearSession[];
     settings?: JournalSettings;
+    fate?: FateState;
   };
   if (
     m?.format !== "private-log" ||
-    ![1, 2].includes(m.version) ||
+    ![1, 2, 3].includes(m.version) ||
     !Array.isArray(m.entries) ||
     !Array.isArray(m.sessions) ||
     m.entries.length > 100000 ||
@@ -159,7 +164,9 @@ export function validateManifest(value: unknown): {
   const settings =
     m.version === 1 ? defaultSettings() : validateSettings(m.settings);
   validateLinks(m.entries, m.sessions, settings);
-  return { entries: m.entries, sessions: m.sessions, settings };
+  if (m.version < 3 && m.fate !== undefined) throw new Error("旧版备份包含未知轮盘数据");
+  const fate = m.version === 3 ? validateFateState(m.fate) : defaultFate();
+  return { entries: m.entries, sessions: m.sessions, settings, fate };
 }
 export async function importBackup(
   blob: Blob,
@@ -178,8 +185,8 @@ export async function importBackup(
   }
   const magic = decoder.decode(await read(MAGIC.length));
   const version =
-    magic === "PRIVATELOG2\n" ? 2 : magic === "PRIVATELOG3\n" ? 3 : 0;
-  if (!version) throw new Error("这不是受支持的私记加密备份（版本 2 / 3）");
+    magic === "PRIVATELOG2\n" ? 2 : magic === "PRIVATELOG3\n" ? 3 : magic === "PRIVATELOG4\n" ? 4 : 0;
+  if (!version) throw new Error("这不是受支持的私记加密备份（版本 2 / 3 / 4）");
   const lengthBytes = await read(4);
   const headerLength = new DataView(lengthBytes.buffer).getUint32(0);
   if (headerLength < 1 || headerLength > 2048)
@@ -220,7 +227,7 @@ export async function importBackup(
   const manifestBytes = await frame();
   if (manifestBytes.length > 20 * 1024 * 1024) throw new Error("备份清单过大");
   const manifestValue = JSON.parse(decoder.decode(manifestBytes));
-  if (manifestValue.version !== (version === 2 ? 1 : 2))
+  if (manifestValue.version !== version - 1)
     throw new Error("备份版本与清单不匹配");
   const manifest = validateManifest(manifestValue);
   const photos: PhotoInput[] = [];

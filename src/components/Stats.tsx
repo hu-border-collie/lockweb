@@ -13,6 +13,8 @@ import {
 import type { Entry, WearSession, JournalSettings } from "../lib/models";
 import { insights } from "../lib/journal";
 import { ShareCard } from "./ShareCard";
+import { FateHistory } from "./FateWheel";
+import type { FateState } from "../lib/fate";
 import { summary, dailyWear, dayKey, shiftDay, duration } from "../lib/time";
 export function Stats({
   entries,
@@ -20,12 +22,14 @@ export function Stats({
   now,
   onDay,
   settings,
+  fate,
 }: {
   entries: Entry[];
   sessions: WearSession[];
   now: number;
   onDay: (day: string) => void;
   settings: JournalSettings;
+  fate: FateState;
 }) {
   const [range, setRange] = useState(7);
   const stats = useMemo(
@@ -60,6 +64,7 @@ export function Stats({
   return (
     <>
       <ShareCard entries={entries} sessions={sessions} now={now} />
+      <FateHistory state={fate} />
       <div className="stat-grid">
         <div className="card metric">
           <span>今日 / 本周 / 本月</span>

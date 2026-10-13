@@ -32,6 +32,8 @@ import { Settings, type Theme } from "./components/Settings";
 import { EntryForm } from "./components/EntryForm";
 import { SessionForm } from "./components/SessionForm";
 import { StealthContext } from "./components/Stealth";
+import { FateWheel } from "./components/FateWheel";
+import { defaultFate, ritualStatus, kindNames, type FateState } from "./lib/fate";
 import { defaultSettings, type JournalSettings } from "./lib/models";
 import { Photo, RecordCard, Modal, Empty, Viewer } from "./components/Shared";
 import { Vault, getConfig, userError } from "./lib/db";
@@ -230,6 +232,8 @@ function Unlocked({
   const [tab, setTab] = useState("home");
   const [entries, setEntries] = useState<Entry[]>([]);
   const [settings, setSettings] = useState<JournalSettings>(defaultSettings);
+  const [fate, setFate] = useState<FateState>(defaultFate);
+  const [wheelOpen, setWheelOpen] = useState(false);
   const [ready, setReady] = useState(false);
   const [stealth, setStealth] = useState(true);
   const [gearId, setGearId] = useState("");
@@ -263,6 +267,7 @@ function Unlocked({
     setSessions(snap.sessions.sort((a, b) => b.start - a.start));
     setRevision(snap.revision);
     setSettings(snap.settings);
+    setFate(snap.fate);
     setReady(true);
   }, [vault]);
   useEffect(() => {
@@ -289,6 +294,7 @@ function Unlocked({
     return () => clearTimeout(t);
   }, [message]);
   const active = sessions.find((s) => s.end === null);
+  const activeFate = active ? [...fate.draws].reverse().find((d) => d.sessionId === active.id && ["extra", "reward"].includes(d.slice.kind)) : undefined;
   useEffect(() => {
     if (gearId && !settings.gears.some((g) => g.id === gearId && !g.archived))
       setGearId("");
@@ -433,6 +439,7 @@ function Unlocked({
                   ? `${dateTime(active.start)} 开始`
                   : "佩戴时段和拍照打卡独立保存"}
               </p>
+              {activeFate && <p className="fate-session-badge">🎲 {kindNames[activeFate.slice.kind]}判定：{activeFate.slice.label}{activeFate.slice.kind === "extra" ? ` · ${activeFate.slice.extraMinutes} 分钟` : ""}<small>仅记录判定，实际计时照常</small></p>}
               <button
                 className="hero-action"
                 disabled={busy || !ready}
@@ -569,6 +576,11 @@ function Unlocked({
               </div>
               <ChevronRight size={19} />
             </button>
+            <button className="fate-launch card" onClick={() => setWheelOpen(true)}>
+              <span className="fate-launch-icon" aria-hidden="true">🎲</span>
+              <span><strong>命运轮盘</strong><small>{fate.config.mode === "free" ? "自由沙盒 · 随时开启" : ritualStatus(fate, entries, now)}</small></span>
+              <ChevronRight size={19} />
+            </button>
             <div className="section-line">
               <h2>最近的照片</h2>
               <button
@@ -653,6 +665,7 @@ function Unlocked({
             sessions={sessions}
             now={now}
             settings={settings}
+            fate={fate}
             onDay={(day) => {
               setSelected(day);
               navigate("calendar");
@@ -714,6 +727,9 @@ function Unlocked({
           />
         </Modal>
       )}
+      {wheelOpen && <Modal title="命运轮盘" onClose={() => setWheelOpen(false)}>
+        <FateWheel vault={vault} state={fate} entries={entries} revision={revision} now={now} refresh={refresh} />
+      </Modal>}
       {manage && (
         <Modal title="佩戴时段" onClose={() => setManage(false)}>
           <button

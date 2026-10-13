@@ -403,7 +403,7 @@ export function Settings({
                     <h3>备份验证通过</h3>
                     <p>
                       {parsed.entries.length} 次打卡 · {parsed.photos.length}{" "}
-                      张照片 · {parsed.sessions.length} 个佩戴时段
+                      张照片 · {parsed.sessions.length} 个佩戴时段 · {parsed.fate.draws.length} 次轮盘判定
                     </p>
                     <button
                       className="primary wide"
@@ -416,6 +416,7 @@ export function Settings({
                             parsed.photos,
                             parsedRevision,
                             parsed.settings,
+                            parsed.fate,
                           );
                           await refresh();
                           setParsed(null);
