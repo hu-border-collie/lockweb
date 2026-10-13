@@ -13,6 +13,7 @@ test("opens a populated v4 vault after an atomic store migration", async ({
   await page.getByRole("button", { name: "清洁小憩", exact: true }).click();
   await expect(page.getByText("清洁小憩中", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "恢复佩戴", exact: true }).click();
+  await expect(page.getByText("正在佩戴", { exact: true })).toBeVisible();
   await page
     .getByRole("navigation")
     .getByRole("button", { name: "打卡", exact: true })
@@ -29,13 +30,16 @@ test("opens a populated v4 vault after an atomic store migration", async ({
     .fill("migration control");
   await page.getByRole("button", { name: "保存打卡", exact: true }).click();
   await expect(
+    page.getByRole("button", { name: "结束本次佩戴", exact: true }),
+  ).toBeVisible();
+  await expect(
     page.getByText("migration control", { exact: true }),
   ).toBeVisible();
   // Close the application connection before rebuilding an actual v4 fixture.
   await page.goto("about:blank");
   const helper = await context.newPage();
   await helper.goto("/icons/icon-192.png");
-  await helper.evaluate(async () => {
+  const copiedCounts = await helper.evaluate(async () => {
     const open = (version?: number, upgrade?: (db: IDBDatabase) => void) =>
       new Promise<IDBDatabase>((resolve, reject) => {
         const r =
@@ -93,7 +97,9 @@ test("opens a populated v4 vault after an atomic store migration", async ({
       );
     });
     legacy.close();
+    return rows.map((records) => records.length);
   });
+  expect(copiedCounts.slice(1)).toEqual([1, 1, 1]);
   await helper.close();
   await page.goto("/");
   await page.getByLabel("解锁密码", { exact: true }).fill("migration-password");
