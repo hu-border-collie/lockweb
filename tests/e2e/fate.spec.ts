@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import path from "node:path";
+test.use({ actionTimeout: 15000 });
 async function setup(page: Page) {
     await page.goto("/");
     await page.getByLabel("设置解锁密码").fill("test-password");

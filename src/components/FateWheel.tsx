@@ -188,7 +188,7 @@ function FateOptions({ vault, config, revision, refresh, onClose }: {
         onClose(); }}>
     <fieldset className="form-stack" disabled={busy}>
       <label className="field">轮盘名称<input maxLength={100} value={draft.name} onChange={(e) => update({ ...draft, name: e.target.value })}/></label>
-      <label className="field">抽取模式<select value={draft.mode} onChange={(e) => update({ ...draft, mode: e.target.value as FateConfig["mode"] })}><option value="ritual">每日打卡仪式</option><option value="free">自由沙盒</option></select><small>每日仪式需要今天新建的拍照打卡，每个本地日期最多一次。切换模式或预设不会重置次数。</small></label>
+      <label className="field">抽取模式<select aria-label="抽取模式" aria-describedby="fate-mode-help" value={draft.mode} onChange={(e) => update({ ...draft, mode: e.target.value as FateConfig["mode"] })}><option value="ritual">每日打卡仪式</option><option value="free">自由沙盒</option></select><small id="fate-mode-help">每日仪式需要今天新建的拍照打卡，每个本地日期最多一次。切换模式或预设不会重置次数。</small></label>
       <div className="fate-preset-buttons"><button className="secondary" onClick={() => preset(false)}>温和日常预设</button><button className="secondary" onClick={() => preset(true)}>硬核加时预设</button></div>
       <p className="muted">权重决定概率和扇区面积；1 与 9 分别为 10% 和 90%。历史判定保留抽取时的内容。</p>
       {draft.slices.map((s, i) => <div className="fate-slice-editor" key={s.id}>
