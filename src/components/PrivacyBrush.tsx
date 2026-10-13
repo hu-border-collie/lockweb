@@ -35,19 +35,19 @@ export function PrivacyBrush({
     const ctx = c.getContext("2d");
     if (!ctx) return;
     ctx.drawImage(img, 0, 0, c.width, c.height);
+    const paint = (target: CanvasRenderingContext2D, s: Stroke) => {
+      target.lineWidth = s.width;
+      target.lineCap = "round";
+      target.lineJoin = "round";
+      target.strokeStyle = "#000";
+      target.beginPath();
+      target.moveTo(s.points[0].x, s.points[0].y);
+      for (const p of s.points) target.lineTo(p.x, p.y);
+      target.lineTo(s.points.at(-1)!.x + 0.01, s.points.at(-1)!.y);
+      target.stroke();
+    };
     for (const s of strokes.current) {
-      const paint = (target: CanvasRenderingContext2D) => {
-        target.lineWidth = s.width;
-        target.lineCap = "round";
-        target.lineJoin = "round";
-        target.strokeStyle = "#000";
-        target.beginPath();
-        target.moveTo(s.points[0].x, s.points[0].y);
-        for (const p of s.points) target.lineTo(p.x, p.y);
-        target.lineTo(s.points.at(-1)!.x + 0.01, s.points.at(-1)!.y);
-        target.stroke();
-      };
-      if (s.mode === "black") paint(ctx);
+      if (s.mode === "black") paint(ctx, s);
       else {
         const pixels = document.createElement("canvas");
         pixels.width = Math.max(1, Math.ceil(c.width / 32));
@@ -65,12 +65,15 @@ export function PrivacyBrush({
         const mask = document.createElement("canvas");
         mask.width = c.width;
         mask.height = c.height;
-        paint(mask.getContext("2d")!);
+        paint(mask.getContext("2d")!, s);
         l.drawImage(mask, 0, 0);
         ctx.drawImage(layer, 0, 0);
         pixels.width = layer.width = mask.width = 1;
       }
     }
+    // Black redactions dominate subsequent mosaic strokes. A mosaic sampled
+    // from the source must never restore pixels under a surviving black mask.
+    for (const s of strokes.current) if (s.mode === "black") paint(ctx, s);
   }
   useEffect(() => {
     alive.current = true;

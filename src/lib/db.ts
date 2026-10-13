@@ -36,20 +36,63 @@ export class PrivateDB extends Dexie {
         photos: "id,ownerId",
       })
       .upgrade((tx) => tx.table("meta").put({ key: "revision", value: 0 }));
-    // Same stores; advancing the version prevents older clients discarding new fields.
+    // Retain historical schemas so existing encrypted data can be migrated.
     this.version(3).stores({
       meta: "key",
       entries: "id",
       sessions: "id",
       photos: "id,ownerId",
     });
-    // Earlier clients do not revoke quick-unlock bindings when changing passwords.
     this.version(4).stores({
       meta: "key",
       entries: "id",
       sessions: "id",
       photos: "id,ownerId",
     });
+    // Dexie retries VersionError without a version, so version numbers alone
+    // cannot isolate old clients. Move every store, including keys and photos.
+    this.version(5)
+      .stores({
+        meta: null,
+        entries: null,
+        sessions: null,
+        photos: null,
+        vaultMeta: "key",
+        journalEntries: "id",
+        wearSessions: "id",
+        journalPhotos: "id,ownerId",
+      })
+      .upgrade(async (tx) => {
+        for (const [source, target] of [
+          ["meta", "vaultMeta"],
+          ["entries", "journalEntries"],
+          ["sessions", "wearSessions"],
+          ["photos", "journalPhotos"],
+        ]) {
+          // Copy one opaque row at a time within the upgrade transaction.
+          // In particular, never load all encrypted photos into memory at once.
+          await new Promise<void>((resolve, reject) => {
+            const cursor = tx.idbtrans.objectStore(source).openCursor();
+            cursor.onerror = () => reject(cursor.error);
+            cursor.onsuccess = () => {
+              const row = cursor.result;
+              if (!row) return resolve();
+              try {
+                const write = tx.idbtrans.objectStore(target).add(row.value);
+                write.onerror = () => reject(write.error);
+                write.onsuccess = () => row.continue();
+              } catch (e) {
+                reject(e);
+              }
+            };
+          });
+        }
+      });
+    // Keep the Vault API stable while legacy clients address separate stores.
+    this.meta = this.table("vaultMeta");
+    this.entries = this.table("journalEntries");
+    this.sessions = this.table("wearSessions");
+    this.photos = this.table("journalPhotos");
     this.on("versionchange", () => this.close());
   }
 }

@@ -92,7 +92,7 @@ describe("journal extensions", () => {
       const snap = await new Vault(vault.key, vault.config, next).snapshot();
       expect(snap.revision).toBe(7);
       expect(snap.settings).toEqual(prefs);
-      expect(next.verno).toBe(4);
+      expect(next.verno).toBe(5);
     } finally {
       await next.delete();
     }
@@ -126,7 +126,7 @@ describe("journal extensions", () => {
       expect(snap.revision).toBe(42);
       expect(snap.entries).toEqual([e]);
       expect(snap.settings).toEqual(defaultSettings());
-      expect(upgraded.verno).toBe(4);
+      expect(upgraded.verno).toBe(5);
     } finally {
       await upgraded.delete();
     }
@@ -366,3 +366,4 @@ describe("journal extensions", () => {
     expect(legacy.settings).toEqual(defaultSettings());
   });
 });
+

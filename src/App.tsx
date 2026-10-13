@@ -624,7 +624,6 @@ function Unlocked({
         )}
         {tab === "calendar" && (
           <Calendar
-            key={selected.slice(0, 7)}
             entries={entries}
             vault={vault}
             selected={selected}
@@ -815,3 +814,4 @@ function Unlocked({
     </PrivateShell>
   );
 }
+

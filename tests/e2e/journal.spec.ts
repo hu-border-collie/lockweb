@@ -71,6 +71,41 @@ test("offline journal tools: encrypted preferences, breaks, redaction, stealth, 
       ].slice(0, 3),
     ),
   ).toEqual([0, 0, 0]);
+  // A later mosaic must not weaken an existing opaque black redaction.
+  await page.getByRole("button", { name: "马赛克", exact: true }).click();
+  const drawMosaic = async () => {
+    await canvas.scrollIntoViewIfNeeded();
+    const overlap = (await canvas.boundingBox())!;
+    await page.mouse.move(
+      overlap.x + overlap.width / 2,
+      overlap.y + overlap.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      overlap.x + overlap.width / 2 + 10,
+      overlap.y + overlap.height / 2,
+    );
+    await page.mouse.up();
+  };
+  await drawMosaic();
+  expect(
+    await canvas.evaluate((c: HTMLCanvasElement) =>
+      [
+        ...c.getContext("2d")!.getImageData(c.width / 2, c.height / 2, 1, 1)
+          .data,
+      ].slice(0, 3),
+    ),
+  ).toEqual([0, 0, 0]);
+  await page.getByRole("button", { name: "撤销一笔", exact: true }).click();
+  expect(
+    await canvas.evaluate((c: HTMLCanvasElement) =>
+      [
+        ...c.getContext("2d")!.getImageData(c.width / 2, c.height / 2, 1, 1)
+          .data,
+      ].slice(0, 3),
+    ),
+  ).toEqual([0, 0, 0]);
+  await drawMosaic();
   await page.getByRole("button", { name: "应用打码", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("button", { name: "保存打卡", exact: true }).click();
@@ -205,4 +240,70 @@ test("offline journal tools: encrypted preferences, breaks, redaction, stealth, 
     page.getByRole("dialog", { name: "照片全屏浏览" }).locator("img"),
   ).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test("keeps a comparison selection when choosing a photo in another month", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("设置解锁密码").fill("test-password");
+  await page.getByLabel("确认密码", { exact: true }).fill("test-password");
+  await page.getByRole("button", { name: "创建本地空间" }).click();
+  const dates = await page.evaluate(() => {
+    const today = new Date(),
+      previous = new Date();
+    previous.setDate(1);
+    previous.setMonth(previous.getMonth() - 1);
+    previous.setDate(15);
+    previous.setHours(12, 0, 0, 0);
+    const local = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return {
+      today: local(today),
+      previous: local(previous),
+      input: local(previous) + "T12:00",
+    };
+  });
+  const nav = async (name: string) =>
+    page
+      .getByRole("navigation")
+      .getByRole("button", { name, exact: true })
+      .click();
+  for (const time of [null, dates.input]) {
+    await nav("打卡");
+    await page
+      .getByLabel("从相册选择照片")
+      .setInputFiles(path.resolve("tests/fixture.jpg"));
+    await expect(
+      page.getByRole("button", { name: "保存打卡", exact: true }),
+    ).toBeEnabled();
+    if (time) await page.getByLabel("打卡时间", { exact: true }).fill(time);
+    await page.getByRole("button", { name: "保存打卡", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "开始佩戴", exact: true }),
+    ).toBeVisible();
+  }
+  await nav("日历");
+  await page.getByRole("button", { name: "选择照片对比", exact: true }).click();
+  await page.locator(".compare-picks input").check();
+  await expect(
+    page.getByRole("button", { name: "对比已选照片（1/2）", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "上个月", exact: true }).click();
+  await page
+    .getByRole("button", { name: `${dates.previous}，1 次打卡`, exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "取消选择对比", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "对比已选照片（1/2）", exact: true }),
+  ).toBeVisible();
+  await page.locator(".compare-picks input").check();
+  await page
+    .getByRole("button", { name: "对比已选照片（2/2）", exact: true })
+    .click();
+  await expect(
+    page.getByRole("dialog", { name: "照片对比" }).locator("img"),
+  ).toHaveCount(2);
 });
