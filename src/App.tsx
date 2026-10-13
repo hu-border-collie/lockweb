@@ -10,14 +10,13 @@ import {
 } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import {
-  Home,
+  Home as HomeIcon,
   CalendarDays,
   Camera,
   ChartNoAxesCombined,
   Settings as SettingsIcon,
   LockKeyhole,
   Plus,
-  ArrowUpRight,
   Timer,
   ShieldCheck,
   WifiOff,
@@ -26,6 +25,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Auth } from "./components/Auth";
+import { Home } from "./components/Home";
 import { Calendar } from "./components/Calendar";
 import { Stats } from "./components/Stats";
 import { Settings, type Theme } from "./components/Settings";
@@ -33,9 +33,9 @@ import { EntryForm } from "./components/EntryForm";
 import { SessionForm } from "./components/SessionForm";
 import { StealthContext } from "./components/Stealth";
 import { FateWheel } from "./components/FateWheel";
-import { defaultFate, ritualStatus, kindNames, type FateState } from "./lib/fate";
+import { defaultFate, type FateState } from "./lib/fate";
 import { defaultSettings, type JournalSettings } from "./lib/models";
-import { Photo, RecordCard, Modal, Empty, Viewer } from "./components/Shared";
+import { Modal, Empty, Viewer } from "./components/Shared";
 import { Vault, getConfig, userError } from "./lib/db";
 import {
   id,
@@ -47,12 +47,11 @@ import {
   dayKey,
   duration,
   dateTime,
-  clock,
   summary,
   totalWear,
 } from "./lib/time";
 const NAV = [
-  { id: "home", label: "首页", icon: Home },
+  { id: "home", label: "首页", icon: HomeIcon },
   { id: "calendar", label: "日历", icon: CalendarDays },
   { id: "checkin", label: "打卡", icon: Camera },
   { id: "stats", label: "统计", icon: ChartNoAxesCombined },
@@ -331,6 +330,58 @@ function Unlocked({
     setError("");
     window.scrollTo({ top: 0 });
   }
+  async function handleToggleWear() {
+    await run(async () => {
+      if (active) {
+        const end = Date.now();
+        await vault.saveSession(
+          {
+            ...active,
+            end,
+            breaks: active.breaks?.map((b) =>
+              b.end === null ? { ...b, end } : b,
+            ),
+          },
+          revision,
+        );
+        setMessage("本次佩戴已结束");
+      } else {
+        await vault.saveSession(
+          {
+            id: id(),
+            start: Date.now(),
+            end: null,
+            note: "",
+            ...(gearId ? { gearId } : {}),
+          },
+          revision,
+        );
+        setMessage("已开始记录佩戴时间");
+      }
+    });
+  }
+  async function handleTogglePause() {
+    if (!active) return;
+    await run(async () => {
+      const timestamp = Date.now();
+      await vault.saveSession(
+        {
+          ...active,
+          breaks: paused
+            ? active.breaks!.map((b, i) =>
+                i === active.breaks!.length - 1
+                  ? { ...b, end: timestamp }
+                  : b,
+              )
+            : [
+                ...(active.breaks ?? []),
+                { start: timestamp, end: null },
+              ],
+        },
+        revision,
+      );
+    });
+  }
   if (!ready)
     return (
       <div className="auth">
@@ -416,223 +467,27 @@ function Unlocked({
           </div>
         )}
         {tab === "home" && (
-          <>
-            <section className={`wear-hero ${active ? "active" : ""}`}>
-              <div className="hero-top">
-                <span className="state-label">
-                  <i />
-                  {active ? (paused ? "清洁小憩中" : "正在佩戴") : "当前未佩戴"}
-                </span>
-                <button className="hero-link" onClick={() => setManage(true)}>
-                  时段管理
-                  <ArrowUpRight size={16} />
-                </button>
-              </div>
-              <p className="hero-caption">
-                {active ? "本次已持续" : "按自己的节奏记录"}
-              </p>
-              <div className="wear-timer">
-                {active ? duration(totalWear([active], now), true) : "自由时刻"}
-              </div>
-              <p className="hero-start">
-                {active
-                  ? `${dateTime(active.start)} 开始`
-                  : "佩戴时段和拍照打卡独立保存"}
-              </p>
-              {activeFate && <p className="fate-session-badge">🎲 {kindNames[activeFate.slice.kind]}判定：{activeFate.slice.label}{activeFate.slice.kind === "extra" ? ` · ${activeFate.slice.extraMinutes} 分钟` : ""}<small>仅记录判定，实际计时照常</small></p>}
-              <button
-                className="hero-action"
-                disabled={busy || !ready}
-                onClick={() =>
-                  void run(async () => {
-                    if (active) {
-                      const end = Date.now();
-                      await vault.saveSession(
-                        {
-                          ...active,
-                          end,
-                          breaks: active.breaks?.map((b) =>
-                            b.end === null ? { ...b, end } : b,
-                          ),
-                        },
-                        revision,
-                      );
-                      setMessage("本次佩戴已结束");
-                    } else {
-                      await vault.saveSession(
-                        {
-                          id: id(),
-                          start: Date.now(),
-                          end: null,
-                          note: "",
-                          ...(gearId ? { gearId } : {}),
-                        },
-                        revision,
-                      );
-                      setMessage("已开始记录佩戴时间");
-                    }
-                  })
-                }
-              >
-                {active ? "结束本次佩戴" : "开始佩戴"}
-                {active ? <Timer size={18} /> : <Plus size={19} />}
-              </button>
-              {!active && settings.gears.some((g) => !g.archived) && (
-                <label className="field">
-                  本次佩戴装备
-                  <select
-                    value={gearId}
-                    onChange={(e) => setGearId(e.target.value)}
-                  >
-                    <option value="">不选择装备</option>
-                    {settings.gears
-                      .filter((g) => !g.archived)
-                      .map((g) => (
-                        <option key={g.id} value={g.id}>
-                          {g.name}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-              )}
-              {active && (
-                <>
-                  <button
-                    className="secondary wide"
-                    disabled={busy}
-                    onClick={() =>
-                      void run(async () => {
-                        const timestamp = Date.now();
-                        await vault.saveSession(
-                          {
-                            ...active,
-                            breaks: paused
-                              ? active.breaks!.map((b, i) =>
-                                  i === active.breaks!.length - 1
-                                    ? { ...b, end: timestamp }
-                                    : b,
-                                )
-                              : [
-                                  ...(active.breaks ?? []),
-                                  { start: timestamp, end: null },
-                                ],
-                          },
-                          revision,
-                        );
-                      })
-                    }
-                  >
-                    {paused ? "恢复佩戴" : "清洁小憩"}
-                  </button>
-                  {paused && (
-                    <p className="hero-start">
-                      小憩已持续{" "}
-                      {duration(now - active.breaks!.at(-1)!.start, true)} ·
-                      此段时间不计入佩戴
-                    </p>
-                  )}
-                </>
-              )}
-            </section>
-            <div className="home-metrics">
-              <div>
-                <span>今日打卡</span>
-                <strong>
-                  {today.length}
-                  <small> 次</small>
-                </strong>
-              </div>
-              <div>
-                <span>最近一次</span>
-                <strong className="time-metric">
-                  {entries.length ? clock(entries[0].timestamp) : "—"}
-                  <small>
-                    {entries.length
-                      ? dayKey(entries[0].timestamp) === dayKey(now)
-                        ? " 今天"
-                        : " " + dayKey(entries[0].timestamp).slice(5)
-                      : " 尚未打卡"}
-                  </small>
-                </strong>
-              </div>
-              <div>
-                <span>连续打卡</span>
-                <strong>
-                  {totals.current}
-                  <small> 天</small>
-                </strong>
-              </div>
-            </div>
-            <button
-              className="quick-capture"
-              onClick={() => navigate("checkin")}
-            >
-              <span>
-                <Camera size={25} />
-              </span>
-              <div>
-                <strong>拍照打卡</strong>
-                <small>拍一张，或选几张。保存就好。</small>
-              </div>
-              <ChevronRight size={19} />
-            </button>
-            <button className="fate-launch card" onClick={() => setWheelOpen(true)}>
-              <span className="fate-launch-icon" aria-hidden="true">🎲</span>
-              <span><strong>命运轮盘</strong><small>{fate.config.mode === "free" ? "自由沙盒 · 随时开启" : ritualStatus(fate, entries, now)}</small></span>
-              <ChevronRight size={19} />
-            </button>
-            <div className="section-line">
-              <h2>最近的照片</h2>
-              <button
-                className="text-button"
-                onClick={() => navigate("calendar")}
-              >
-                查看全部
-                <ChevronRight size={14} />
-              </button>
-            </div>
-            {entries.length ? (
-              <div className="recent-grid">
-                {entries
-                  .flatMap((e) => e.photoIds.map((p) => ({ p, e })))
-                  .slice(0, 6)
-                  .map(({ p, e }) => (
-                    <div key={p}>
-                      <Photo
-                        id={p}
-                        vault={vault}
-                        onClick={() => view(e.photoIds, e.photoIds.indexOf(p))}
-                      />
-                      <span>{dateTime(e.timestamp)}</span>
-                    </div>
-                  ))}
-              </div>
-            ) : (
-              <div className="card">
-                <Empty
-                  title="从第一张照片开始"
-                  detail="日常的每一个瞬间，都值得被自己记住。"
-                />
-              </div>
-            )}
-            <div className="section-line">
-              <h2>今日记录</h2>
-              <span className="muted">{today.length} 次</span>
-            </div>
-            {today.length ? (
-              today.map((e) => (
-                <RecordCard
-                  key={e.id}
-                  entry={e}
-                  vault={vault}
-                  onEdit={setEdit}
-                  onView={view}
-                />
-              ))
-            ) : (
-              <p className="muted empty-line">今天的记录会出现在这里。</p>
-            )}
-          </>
+          <Home
+            vault={vault}
+            entries={entries}
+            settings={settings}
+            fate={fate}
+            active={active}
+            paused={paused}
+            gearId={gearId}
+            setGearId={setGearId}
+            busy={busy}
+            ready={ready}
+            onToggleWear={handleToggleWear}
+            onTogglePause={handleTogglePause}
+            onOpenManage={() => setManage(true)}
+            onOpenWheel={() => setWheelOpen(true)}
+            onNavigate={navigate}
+            onEdit={setEdit}
+            onView={view}
+            totals={totals}
+            now={now}
+          />
         )}
         {tab === "calendar" && (
           <Calendar

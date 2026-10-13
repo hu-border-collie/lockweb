@@ -1,42 +1,5 @@
 @import "tailwindcss";
-.fate-launch { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; margin: 0 0 20px; }
-.fate-launch > span:nth-child(2) { flex: 1; min-width: 0; }
-.fate-launch strong, .fate-launch small { display: block; }
-.fate-launch small { color: var(--muted); margin-top: 4px; }
-.fate-launch-icon { font-size: 26px; width: 48px; height: 48px; display: grid; place-items: center; background: var(--accent-soft); border-radius: 16px; }
-.fate-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.fate-heading h3 { margin-top: 5px; }
-.fate-wheel-wrap { position: relative; max-width: 340px; margin: 12px auto 0; }
-.fate-wheel { width: 100%; display: block; filter: drop-shadow(0 8px 14px #18285016); }
-.fate-pointer { position: absolute; z-index: 1; top: 3%; left: calc(50% - 10px); width: 20px; height: 27px; background: var(--text); clip-path: polygon(0 0, 100% 0, 50% 100%); }
-.fate-rule { text-align: center; font-size: 13px; color: var(--muted); margin: 0 0 14px; }
-.fate-spin { margin-bottom: 14px; }
-.fate-result { background: var(--accent-soft); padding: 18px; border-radius: 18px; margin-bottom: 16px; display: grid; gap: 10px; }
-.fate-result h3 { display: flex; align-items: flex-start; gap: 8px; overflow-wrap: anywhere; font-size: 19px; }
-.fate-result h3 svg { flex-shrink: 0; margin-top: 4px; }
-.fate-legend, .fate-timeline { padding: 0; list-style: none; margin: 16px 0; }
-.fate-legend { counter-reset: slices; }
-.fate-legend li { counter-increment: slices; display: flex; align-items: center; gap: 9px; padding: 10px 0; border-bottom: 1px solid var(--line); }
-.fate-legend li::before { content: counter(slices); color: var(--muted); width: 18px; flex-shrink: 0; font-size: 12px; }
-.fate-legend li > span:nth-of-type(2) { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.fate-legend strong { font-size: 13px; white-space: nowrap; }
-.fate-legend small, .fate-timeline small { display: block; color: var(--muted); margin-top: 4px; font-size: 11px; }
-.fate-swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.fate-footnote { font-size: 12px; }
-.fate-preset-buttons, .fate-editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.fate-slice-editor { padding: 16px; border-radius: 16px; border: 1px solid var(--line); display: grid; gap: 12px; }
-.fate-slice-editor .section-line { margin: 0; }
-.fate-editor-grid input, .fate-editor-grid select { min-width: 0; width: 100%; }
-.fate-editor-grid input[type="color"] { padding: 5px; }
-.fate-history > .muted { margin-top: 8px; font-size: 12px; }
-.fate-counts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 18px 0; }
-.fate-counts span { border-radius: 12px; padding: 12px 6px; text-align: center; background: var(--bg); color: var(--muted); font-size: 12px; }
-.fate-counts strong { display: block; color: var(--text); font-size: 21px; margin-top: 5px; }
-.fate-timeline li { display: flex; align-items: flex-start; gap: 12px; padding: 13px 0; border-top: 1px solid var(--line); }
-.fate-timeline li > .fate-swatch { margin-top: 6px; }
-.fate-timeline li > div { min-width: 0; overflow-wrap: anywhere; }
-.fate-session-badge { display: block; background: #ffffff20; border: 1px solid #ffffff30; border-radius: 12px; padding: 12px; margin: 12px 0; font-size: 13px; overflow-wrap: anywhere; }
-.fate-session-badge small { display: block; opacity: .8; margin-top: 4px; }
+
 :root {
   font-family:
     -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC",
@@ -99,6 +62,7 @@ input,
 textarea,
 select {
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 button {
   cursor: pointer;
@@ -106,6 +70,10 @@ button {
   border: 0;
   background: none;
   color: inherit;
+  transition: opacity 0.12s ease, transform 0.08s ease;
+}
+button:active:not(:disabled) {
+  transform: scale(0.98);
 }
 button:disabled {
   opacity: 0.45;
@@ -724,6 +692,24 @@ main {
   background: #39988815;
   color: var(--teal);
 }
+@keyframes sheetSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0.85;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes backdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -733,6 +719,7 @@ main {
   align-items: flex-end;
   z-index: 60;
   padding: env(safe-area-inset-top) 0 0;
+  animation: backdropFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .sheet {
   width: 100%;
@@ -743,6 +730,16 @@ main {
   padding: 10px 24px calc(25px + env(safe-area-inset-bottom));
   overflow-y: auto;
   outline: none;
+  animation: sheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sheet::before {
+  content: "";
+  display: block;
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  margin: 0 auto 10px;
 }
 .sheet-heading {
   position: sticky;
@@ -1594,6 +1591,45 @@ fieldset {
 .wear-hero .secondary {
   margin-top: 12px;
 }
+/* Fate Wheel */
+.fate-launch { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; margin: 0 0 20px; }
+.fate-launch > span:nth-child(2) { flex: 1; min-width: 0; }
+.fate-launch strong, .fate-launch small { display: block; }
+.fate-launch small { color: var(--muted); margin-top: 4px; }
+.fate-launch-icon { font-size: 26px; width: 48px; height: 48px; display: grid; place-items: center; background: var(--accent-soft); border-radius: 16px; }
+.fate-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fate-heading h3 { margin-top: 5px; }
+.fate-wheel-wrap { position: relative; max-width: 340px; margin: 12px auto 0; }
+.fate-wheel { width: 100%; display: block; filter: drop-shadow(0 8px 14px #18285016); }
+.fate-pointer { position: absolute; z-index: 1; top: 3%; left: calc(50% - 10px); width: 20px; height: 27px; background: var(--text); clip-path: polygon(0 0, 100% 0, 50% 100%); }
+.fate-rule { text-align: center; font-size: 13px; color: var(--muted); margin: 0 0 14px; }
+.fate-spin { margin-bottom: 14px; }
+.fate-result { background: var(--accent-soft); padding: 18px; border-radius: 18px; margin-bottom: 16px; display: grid; gap: 10px; }
+.fate-result h3 { display: flex; align-items: flex-start; gap: 8px; overflow-wrap: anywhere; font-size: 19px; }
+.fate-result h3 svg { flex-shrink: 0; margin-top: 4px; }
+.fate-legend, .fate-timeline { padding: 0; list-style: none; margin: 16px 0; }
+.fate-legend { counter-reset: slices; }
+.fate-legend li { counter-increment: slices; display: flex; align-items: center; gap: 9px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.fate-legend li::before { content: counter(slices); color: var(--muted); width: 18px; flex-shrink: 0; font-size: 12px; }
+.fate-legend li > span:nth-of-type(2) { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.fate-legend strong { font-size: 13px; white-space: nowrap; }
+.fate-legend small, .fate-timeline small { display: block; color: var(--muted); margin-top: 4px; font-size: 11px; }
+.fate-swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.fate-footnote { font-size: 12px; }
+.fate-preset-buttons, .fate-editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.fate-slice-editor { padding: 16px; border-radius: 16px; border: 1px solid var(--line); display: grid; gap: 12px; }
+.fate-slice-editor .section-line { margin: 0; }
+.fate-editor-grid input, .fate-editor-grid select { min-width: 0; width: 100%; }
+.fate-editor-grid input[type="color"] { padding: 5px; }
+.fate-history > .muted { margin-top: 8px; font-size: 12px; }
+.fate-counts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 18px 0; }
+.fate-counts span { border-radius: 12px; padding: 12px 6px; text-align: center; background: var(--bg); color: var(--muted); font-size: 12px; }
+.fate-counts strong { display: block; color: var(--text); font-size: 21px; margin-top: 5px; }
+.fate-timeline li { display: flex; align-items: flex-start; gap: 12px; padding: 13px 0; border-top: 1px solid var(--line); }
+.fate-timeline li > .fate-swatch { margin-top: 6px; }
+.fate-timeline li > div { min-width: 0; overflow-wrap: anywhere; }
+.fate-session-badge { display: block; background: #ffffff20; border: 1px solid #ffffff30; border-radius: 12px; padding: 12px; margin: 12px 0; font-size: 13px; overflow-wrap: anywhere; }
+.fate-session-badge small { display: block; opacity: .8; margin-top: 4px; }
 @media (max-width: 450px) {
   .compare-side {
     grid-template-columns: 1fr;

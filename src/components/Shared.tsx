@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { memo, useEffect, useRef, useState, type ReactNode } from "react";
 import { X, Plus, Minus, RotateCcw, Image as ImageIcon } from "lucide-react";
 import type { Vault } from "../lib/db";
 import type { Entry } from "../lib/models";
@@ -6,7 +6,7 @@ import { clock, dateTime } from "../lib/time";
 import { useStealth } from "./Stealth";
 const modalStack: HTMLDivElement[] = [];
 let previousOverflow = "";
-export function Empty({
+export const Empty = memo(function Empty({
   icon,
   title,
   detail,
@@ -25,7 +25,7 @@ export function Empty({
       {action}
     </div>
   );
-}
+});
 export function Modal({
   title,
   onClose,
@@ -80,7 +80,12 @@ export function Modal({
     };
   }, []);
   return (
-    <div className="modal-backdrop">
+    <div
+      className="modal-backdrop"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
         className="sheet"
         role="dialog"
@@ -243,7 +248,7 @@ export function Photo({
     </div>
   );
 }
-export function RecordCard({
+export const RecordCard = memo(function RecordCard({
   entry,
   vault,
   onEdit,
@@ -296,7 +301,7 @@ export function RecordCard({
       )}
     </article>
   );
-}
+});
 export function Viewer({
   ids,
   index,

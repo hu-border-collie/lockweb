@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays, Images } from "lucide-react";
 import type { Entry } from "../lib/models";
 import type { Vault } from "../lib/db";
 import { dayKey, parseDay } from "../lib/time";
 import { Empty, RecordCard, Photo } from "./Shared";
 import { ComparePhotos, type ComparePhoto } from "./ComparePhotos";
-export function Calendar({
+export const Calendar = memo(function Calendar({
   entries,
   vault,
   selected,
@@ -34,9 +34,12 @@ export function Calendar({
     }
     return c;
   }, [entries]);
-  const start = new Date(month.getFullYear(), month.getMonth(), 1);
-  const blank = (start.getDay() + 6) % 7;
-  const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  const { blank, days } = useMemo(() => {
+    const start = new Date(month.getFullYear(), month.getMonth(), 1);
+    const blank = (start.getDay() + 6) % 7;
+    const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+    return { blank, days };
+  }, [month]);
   const filtered =
     mode === "calendar"
       ? entries.filter((e) => dayKey(e.timestamp) === selected)
@@ -227,4 +230,4 @@ export function Calendar({
       )}
     </>
   );
-}
+});
