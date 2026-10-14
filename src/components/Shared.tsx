@@ -36,6 +36,8 @@ export function Modal({
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const backdropPointer = useRef<number | null>(null);
+  const backdropClick = useRef(false);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
   useEffect(() => {
@@ -82,8 +84,32 @@ export function Modal({
   return (
     <div
       className="modal-backdrop"
+      onPointerDown={(e) => {
+        backdropClick.current = false;
+        backdropPointer.current =
+          e.target === e.currentTarget && e.isPrimary && e.button === 0
+            ? e.pointerId
+            : null;
+      }}
+      onPointerUp={(e) => {
+        backdropClick.current =
+          backdropPointer.current === e.pointerId &&
+          e.target === e.currentTarget &&
+          document.elementFromPoint(e.clientX, e.clientY) === e.currentTarget;
+        backdropPointer.current = null;
+      }}
+      onPointerCancel={() => {
+        backdropPointer.current = null;
+        backdropClick.current = false;
+      }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        const shouldClose = backdropClick.current;
+        backdropClick.current = false;
+        if (
+          shouldClose &&
+          e.target === e.currentTarget &&
+          modalStack.at(-1) === ref.current
+        ) onClose();
       }}
     >
       <div

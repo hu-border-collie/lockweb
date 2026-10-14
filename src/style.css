@@ -70,10 +70,10 @@ button {
   border: 0;
   background: none;
   color: inherit;
-  transition: opacity 0.12s ease, transform 0.08s ease;
+  transition: opacity 0.12s ease, scale 0.08s ease;
 }
 button:active:not(:disabled) {
-  transform: scale(0.98);
+  scale: 0.98;
 }
 button:disabled {
   opacity: 0.45;

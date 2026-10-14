@@ -15,8 +15,9 @@ import { Photo, RecordCard, Empty } from "./Shared";
 import { useEffect, useState } from "react";
 
 function LiveWearTimer({ session }: { session?: WearSession }) {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(Date.now);
   useEffect(() => {
+    setNow(Date.now());
     if (!session || session.end !== null) return;
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
@@ -33,7 +34,7 @@ function LiveWearTimer({ session }: { session?: WearSession }) {
 }
 
 function LivePauseDuration({ pauseStart }: { pauseStart: number }) {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(Date.now);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);

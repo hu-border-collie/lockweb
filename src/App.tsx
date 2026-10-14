@@ -4,6 +4,7 @@ import Dexie from "dexie";
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -47,7 +48,7 @@ import {
   dayKey,
   duration,
   dateTime,
-  summary,
+  streaks,
   totalWear,
 } from "./lib/time";
 const NAV = [
@@ -238,7 +239,7 @@ function Unlocked({
   const [gearId, setGearId] = useState("");
   const [sessions, setSessions] = useState<WearSession[]>([]);
   const [revision, setRevision] = useState(0);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(Date.now);
   const [online, setOnline] = useState(navigator.onLine);
   const [selected, setSelected] = useState(dayKey(Date.now()));
   const [edit, setEdit] = useState<Entry | null>(null);
@@ -267,11 +268,11 @@ function Unlocked({
     setRevision(snap.revision);
     setSettings(snap.settings);
     setFate(snap.fate);
+    setNow(Date.now());
     setReady(true);
   }, [vault]);
   useEffect(() => {
     void refresh().catch((e) => setError(userError(e)));
-    const timer = setInterval(() => setNow(Date.now()), 1000);
     const on = () => setOnline(navigator.onLine);
     window.addEventListener("online", on);
     window.addEventListener("offline", on);
@@ -281,31 +282,50 @@ function Unlocked({
     Dexie.on("storagemutated", sub);
     return () => {
       refreshGeneration.current++;
-      clearInterval(timer);
       window.removeEventListener("online", on);
       window.removeEventListener("offline", on);
       Dexie.on("storagemutated").unsubscribe(sub);
     };
   }, [refresh]);
   useEffect(() => {
+    // Page dates and minute-precision statistics need no second-level updates.
+    // Align to wall-clock minutes so midnight also refreshes ritual eligibility.
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      setNow(Date.now());
+      timer = setTimeout(tick, 60000 - (Date.now() % 60000));
+    };
+    const resume = () => {
+      if (document.hidden) return;
+      clearTimeout(timer);
+      tick();
+    };
+    timer = setTimeout(tick, 60000 - (Date.now() % 60000));
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("focus", resume);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("focus", resume);
+    };
+  }, []);
+  useEffect(() => {
     if (!message) return;
     const t = setTimeout(() => setMessage(""), 4000);
     return () => clearTimeout(t);
   }, [message]);
   const active = sessions.find((s) => s.end === null);
-  const activeFate = active ? [...fate.draws].reverse().find((d) => d.sessionId === active.id && ["extra", "reward"].includes(d.slice.kind)) : undefined;
   useEffect(() => {
     if (gearId && !settings.gears.some((g) => g.id === gearId && !g.archived))
       setGearId("");
   }, [gearId, settings]);
   const paused = active?.breaks?.at(-1)?.end === null;
-  const today = entries.filter((e) => dayKey(e.timestamp) === dayKey(now));
-  const totals = summary(entries, sessions, now);
+  const totals = useMemo(() => streaks(entries, now), [entries, now]);
   const view = useCallback(
     (ids: string[], index: number) => setViewer({ ids, index }),
     [],
   );
-  async function run(fn: () => Promise<void>) {
+  const run = useCallback(async (fn: () => Promise<void>) => {
     setBusy(true);
     setError("");
     try {
@@ -317,20 +337,29 @@ function Unlocked({
     } finally {
       setBusy(false);
     }
-  }
-  async function save() {
+  }, [refresh]);
+  const save = useCallback(async () => {
     await refresh();
     setEdit(null);
     setTab("home");
     setFormKey((v) => v + 1);
     setMessage("打卡已保存在本机");
-  }
-  function navigate(t: string) {
+  }, [refresh]);
+  const navigate = useCallback((t: string) => {
     setTab(t);
+    setNow(Date.now());
     setError("");
     window.scrollTo({ top: 0 });
-  }
-  async function handleToggleWear() {
+  }, []);
+  const openManage = useCallback(() => setManage(true), []);
+  const openWheel = useCallback(() => setWheelOpen(true), []);
+  const cancelEntry = useCallback(() => navigate("home"), [navigate]);
+  const cancelEdit = useCallback(() => setEdit(null), []);
+  const selectStatsDay = useCallback((day: string) => {
+    setSelected(day);
+    navigate("calendar");
+  }, [navigate]);
+  const handleToggleWear = useCallback(async () => {
     await run(async () => {
       if (active) {
         const end = Date.now();
@@ -359,8 +388,8 @@ function Unlocked({
         setMessage("已开始记录佩戴时间");
       }
     });
-  }
-  async function handleTogglePause() {
+  }, [active, gearId, revision, run, vault]);
+  const handleTogglePause = useCallback(async () => {
     if (!active) return;
     await run(async () => {
       const timestamp = Date.now();
@@ -381,7 +410,7 @@ function Unlocked({
         revision,
       );
     });
-  }
+  }, [active, paused, revision, run, vault]);
   if (!ready)
     return (
       <div className="auth">
@@ -480,8 +509,8 @@ function Unlocked({
             ready={ready}
             onToggleWear={handleToggleWear}
             onTogglePause={handleTogglePause}
-            onOpenManage={() => setManage(true)}
-            onOpenWheel={() => setWheelOpen(true)}
+            onOpenManage={openManage}
+            onOpenWheel={openWheel}
             onNavigate={navigate}
             onEdit={setEdit}
             onView={view}
@@ -510,7 +539,7 @@ function Unlocked({
               settings={settings}
               active={paused ? undefined : active}
               onSave={save}
-              onCancel={() => navigate("home")}
+              onCancel={cancelEntry}
             />
           </div>
         )}
@@ -521,10 +550,7 @@ function Unlocked({
             now={now}
             settings={settings}
             fate={fate}
-            onDay={(day) => {
-              setSelected(day);
-              navigate("calendar");
-            }}
+            onDay={selectStatsDay}
           />
         )}
         {tab === "settings" && (
@@ -567,7 +593,7 @@ function Unlocked({
         </div>
       )}
       {edit && (
-        <Modal title="编辑打卡" onClose={() => setEdit(null)}>
+        <Modal title="编辑打卡" onClose={cancelEdit}>
           <EntryForm
             entry={edit}
             vault={vault}
@@ -577,7 +603,7 @@ function Unlocked({
             settings={settings}
             active={paused ? undefined : active}
             onSave={save}
-            onCancel={() => setEdit(null)}
+            onCancel={cancelEdit}
             onDelete={(e) => setDeletion({ entry: e })}
           />
         </Modal>
