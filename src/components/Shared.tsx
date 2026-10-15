@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { memo, useEffect, useRef, useState, type ReactNode } from "react";
 import { X, Plus, Minus, RotateCcw, Image as ImageIcon } from "lucide-react";
 import type { Vault } from "../lib/db";
 import type { Entry } from "../lib/models";
@@ -6,7 +6,7 @@ import { clock, dateTime } from "../lib/time";
 import { useStealth } from "./Stealth";
 const modalStack: HTMLDivElement[] = [];
 let previousOverflow = "";
-export function Empty({
+export const Empty = memo(function Empty({
   icon,
   title,
   detail,
@@ -25,7 +25,7 @@ export function Empty({
       {action}
     </div>
   );
-}
+});
 export function Modal({
   title,
   onClose,
@@ -36,6 +36,8 @@ export function Modal({
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const backdropPointer = useRef<number | null>(null);
+  const backdropClick = useRef(false);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
   useEffect(() => {
@@ -80,7 +82,36 @@ export function Modal({
     };
   }, []);
   return (
-    <div className="modal-backdrop">
+    <div
+      className="modal-backdrop"
+      onPointerDown={(e) => {
+        backdropClick.current = false;
+        backdropPointer.current =
+          e.target === e.currentTarget && e.isPrimary && e.button === 0
+            ? e.pointerId
+            : null;
+      }}
+      onPointerUp={(e) => {
+        backdropClick.current =
+          backdropPointer.current === e.pointerId &&
+          e.target === e.currentTarget &&
+          document.elementFromPoint(e.clientX, e.clientY) === e.currentTarget;
+        backdropPointer.current = null;
+      }}
+      onPointerCancel={() => {
+        backdropPointer.current = null;
+        backdropClick.current = false;
+      }}
+      onClick={(e) => {
+        const shouldClose = backdropClick.current;
+        backdropClick.current = false;
+        if (
+          shouldClose &&
+          e.target === e.currentTarget &&
+          modalStack.at(-1) === ref.current
+        ) onClose();
+      }}
+    >
       <div
         className="sheet"
         role="dialog"
@@ -243,7 +274,7 @@ export function Photo({
     </div>
   );
 }
-export function RecordCard({
+export const RecordCard = memo(function RecordCard({
   entry,
   vault,
   onEdit,
@@ -296,7 +327,7 @@ export function RecordCard({
       )}
     </article>
   );
-}
+});
 export function Viewer({
   ids,
   index,

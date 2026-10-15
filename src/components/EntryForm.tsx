@@ -1,5 +1,5 @@
 import { beginSystemDialog, endSystemDialog } from "../lib/privacy";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { Camera, ImagePlus, X, ChevronDown, Check } from "lucide-react";
 import { Photo } from "./Shared";
 import {
@@ -15,7 +15,7 @@ import type { Vault } from "../lib/db";
 import { userError } from "../lib/db";
 import { localInput, fromInput } from "../lib/time";
 import { processImage } from "../lib/images";
-export function EntryForm({
+export const EntryForm = memo(function EntryForm({
   entry,
   vault,
   revision,
@@ -474,4 +474,4 @@ export function EntryForm({
       )}
     </fieldset>
   );
-}
+});

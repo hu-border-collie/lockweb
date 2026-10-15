@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -16,7 +16,7 @@ import { ShareCard } from "./ShareCard";
 import { FateHistory } from "./FateWheel";
 import type { FateState } from "../lib/fate";
 import { summary, dailyWear, dayKey, shiftDay, duration } from "../lib/time";
-export function Stats({
+export const Stats = memo(function Stats({
   entries,
   sessions,
   now,
@@ -49,17 +49,22 @@ export function Stats({
     }
     return m;
   }, [entries]);
-  const data = Array.from({ length: range }, (_, i) => {
-    const day = shiftDay(dayKey(now), i - range + 1);
-    return {
-      day,
-      label: day.slice(5).replace("-", "/"),
-      checkins: counts[day] ?? 0,
-      hours: Math.round(((wear[day] ?? 0) / 3600000) * 100) / 100,
-    };
-  });
-  const heat = Array.from({ length: 84 }, (_, i) =>
-    shiftDay(dayKey(now), i - 83),
+  const data = useMemo(
+    () =>
+      Array.from({ length: range }, (_, i) => {
+        const day = shiftDay(dayKey(now), i - range + 1);
+        return {
+          day,
+          label: day.slice(5).replace("-", "/"),
+          checkins: counts[day] ?? 0,
+          hours: Math.round(((wear[day] ?? 0) / 3600000) * 100) / 100,
+        };
+      }),
+    [range, now, counts, wear],
+  );
+  const heat = useMemo(
+    () => Array.from({ length: 84 }, (_, i) => shiftDay(dayKey(now), i - 83)),
+    [now],
   );
   return (
     <>
@@ -362,4 +367,4 @@ export function Stats({
       </div>
     </>
   );
-}
+});
