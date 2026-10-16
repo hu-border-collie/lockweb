@@ -73,6 +73,8 @@ export interface VaultConfig {
   wrapped: Sealed;
 }
 export const QUICK_UNLOCK_META = "quick-unlock";
+// Zero means no expiry; existing finite bindings retain their original policy.
+export type QuickUnlockWindowHours = 0 | 1 | 12 | 24 | 168 | 720;
 export interface QuickUnlockBinding {
   version: 1;
   id: string;
@@ -84,9 +86,9 @@ export interface QuickUnlockBinding {
   publicKey: Uint8Array;
   prfInput: Uint8Array;
   hkdfSalt: Uint8Array;
-  windowHours: 1 | 12 | 24;
+  windowHours: QuickUnlockWindowHours;
   authorizedAt: number;
-  expiresAt: number;
+  expiresAt: number | null;
   wrapped: Sealed;
   authorization: Sealed;
 }
