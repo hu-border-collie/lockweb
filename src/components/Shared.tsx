@@ -244,9 +244,9 @@ export function Photo({
     };
   }, [id, vault, blob]);
   const content = url ? (
-    <img src={url} alt="私人打卡照片" loading="lazy" draggable={false} />
+    <img src={url} alt="手记里的照片" loading="lazy" draggable={false} />
   ) : (
-    <span>{error ? "照片读取失败" : <ImageIcon size={22} />}</span>
+    <span>{error ? "没能读出这张照片" : <ImageIcon size={22} />}</span>
   );
   return onClick ? (
     <button
@@ -256,7 +256,7 @@ export function Photo({
       type="button"
       className={`photo-thumb ${stealth && !reveal ? "concealed" : ""}`}
       {...preview}
-      aria-label="查看照片"
+      aria-label="看这张照片"
     >
       {content}
     </button>
@@ -289,22 +289,22 @@ export const RecordCard = memo(function RecordCard({
     <article className="card record">
       <div className="record-heading">
         <div>
-          <strong>{clock(entry.timestamp)}</strong>
-          <span className="muted">
+          <strong className="record-time">{clock(entry.timestamp)}</strong>
+          <span className="record-status">
             {entry.wearing === "on"
               ? "佩戴中"
               : entry.wearing === "off"
                 ? "未佩戴"
-                : "状态未记录"}
-            {entry.comfort ? " · 舒适度 " + entry.comfort + "/5" : ""}
+                : "未记录状态"}
+            {entry.comfort ? " · 舒适 " + entry.comfort + "/5" : ""}
           </span>
         </div>
         <button
           className="text-button"
           onClick={() => onEdit(entry)}
-          aria-label={`编辑 ${dateTime(entry.timestamp)} 打卡`}
+          aria-label={`改一改 ${dateTime(entry.timestamp)} 的这条记录`}
         >
-          编辑
+          改一改
         </button>
       </div>
       <div className="photo-strip">
@@ -437,7 +437,7 @@ export function Viewer({
             style={{
               transform: `translate(${offset.x}px,${offset.y}px) scale(${scale})`,
             }}
-            alt="私人打卡照片"
+            alt="手记里的照片"
           />
         ) : (
           <p>{error || "解密照片中…"}</p>

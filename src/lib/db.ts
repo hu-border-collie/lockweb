@@ -15,7 +15,7 @@ import { dayKey } from "./time";
 import { validateManifest } from "./backup";
 import { makeVault, sealJSON, openJSON, seal, open } from "./crypto";
 import { validateSession } from "./time";
-import { FATE_META, MAX_FATE_DRAWS, defaultFate, validateFateConfig, validateFateState, pickFate, ritualStatus, fateNote, type FateState, type FateConfig, type FateDraw } from "./fate";
+import { FATE_META, MAX_FATE_DRAWS, RITUAL_READY, defaultFate, validateFateConfig, validateFateState, pickFate, ritualStatus, fateNote, type FateState, type FateConfig, type FateDraw } from "./fate";
 export class PrivateDB extends Dexie {
   meta!: Table<{ key: string; value: unknown }, string>;
   entries!: Table<Row, string>;
@@ -428,7 +428,7 @@ export class Vault {
     if (snap.fate.draws.length >= MAX_FATE_DRAWS) throw new Error("轮盘记录已达 20000 次，请先备份并整理数据");
     if (snap.fate.config.mode === "ritual") {
       const status = ritualStatus(snap.fate, snap.entries, now);
-      if (status !== "今日仪式已点亮") throw new Error(status);
+      if (status !== RITUAL_READY) throw new Error(status);
     }
     const active = snap.sessions.find((s) => s.end === null);
     const draw: FateDraw = {

@@ -1,0 +1,456 @@
+/* ==========================================================================
+   回顾页 · 统计与匿名小结（src/styles/stats.css）
+   仅使用 tokens.css 的设计变量；不定义 :root，不引入外部资源。
+   BRIEF 第 4 节归本文件的选择器：.stat-grid / .metric / .stat-detail /
+   .chart / .chart-legend / .range-select / .heat* / .data-row / .share-preview
+   （其中 .data-row 也被设置页/记录偏好复用，故按共享细线行样式书写）。
+   ========================================================================== */
+
+/* ---------- 页面骨架与卡片节奏 ---------- */
+.stat-page {
+  display: block;
+}
+
+.stat-page > .card {
+  margin-bottom: 18px;
+}
+
+.stat-page > .card:last-child {
+  margin-bottom: 0;
+}
+
+.stat-page .stat-card h2 {
+  font-size: var(--fs-h2);
+}
+
+.stat-page .stat-card > .muted {
+  margin: 9px 0 14px;
+  font-size: var(--fs-small);
+  line-height: 1.7;
+  color: var(--ink-faint);
+}
+
+.stat-page .stat-card > .section-line:first-child {
+  margin-top: 0;
+}
+
+/* ---------- 顶部入口（做一张匿名小结）---------- */
+.stat-entry {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  min-height: 58px;
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  text-align: left;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  transition:
+    color 0.15s,
+    background-color 0.15s,
+    border-color 0.15s;
+}
+
+.stat-entry:active:not(:disabled) {
+  background: var(--seal-soft);
+  border-color: var(--seal);
+}
+
+.stat-entry:focus-visible {
+  outline: 2px solid var(--seal);
+  outline-offset: 3px;
+}
+
+.stat-entry-mark {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--seal);
+  border-radius: var(--radius-xs);
+  background: var(--seal);
+  color: #fdf6ec;
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1;
+  transform: rotate(-2deg);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, #fdf6ec 16%, transparent);
+}
+
+.stat-entry-mark::after {
+  content: "简";
+}
+
+.stat-entry-title {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--serif);
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+
+.stat-entry-arrow {
+  flex: none;
+  font-family: var(--sans);
+  font-size: var(--fs-body);
+  line-height: 1;
+  color: var(--seal);
+}
+
+/* ---------- 4 个指标卡（2×2）---------- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  min-height: 118px;
+  margin-bottom: 0;
+  padding: 15px 15px 13px;
+}
+
+.metric > span {
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--ink-soft);
+}
+
+.metric strong {
+  display: block;
+  margin: 9px 0 12px;
+  font-family: var(--serif);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.metric strong small {
+  font-family: var(--sans);
+  font-size: var(--fs-caption);
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink-faint);
+}
+
+.metric p {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+  font-size: var(--fs-caption);
+  line-height: 1.5;
+  color: var(--ink-faint);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- 最长的一次佩戴 ---------- */
+.stat-detail {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 15px 16px;
+}
+
+.stat-detail > span {
+  font-size: var(--fs-caption);
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+}
+
+.stat-detail strong {
+  flex: none;
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---------- 图表卡 ---------- */
+.chart {
+  width: 100%;
+  height: 190px;
+  margin: 6px 0 2px;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 12px 0 4px;
+  font-size: var(--fs-caption);
+  color: var(--ink-soft);
+}
+
+.chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--seal);
+}
+
+.chart-legend i.moss {
+  background: var(--moss);
+}
+
+.chart-legend i.faint {
+  background: var(--ink-faint);
+}
+
+/* ---------- 趋势区间 ---------- */
+.range-select {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.range-select button {
+  min-height: 44px;
+  padding: 0 9px;
+  font-family: var(--sans);
+  font-size: var(--fs-caption);
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-xs);
+  background: none;
+  transition:
+    color 0.15s,
+    background-color 0.15s,
+    border-color 0.15s;
+}
+
+.range-select button:active:not(:disabled) {
+  background: var(--seal-soft);
+}
+
+.range-select button:focus-visible {
+  outline: 2px solid var(--seal);
+  outline-offset: 2px;
+}
+
+.range-select .selected {
+  color: var(--seal);
+  font-weight: 600;
+  border-bottom-color: var(--seal);
+}
+
+/* ---------- 记录足迹热力图 ---------- */
+.heat-grid {
+  display: grid;
+  grid-template-rows: repeat(7, 1fr);
+  grid-auto-flow: column;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 7px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+}
+
+.heat {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 2px;
+  background: var(--rule);
+  transition: background-color 0.15s;
+}
+
+/* 小格子上外扩可点区域，尽量接近触控目标 */
+.heat::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+
+.heat:focus-visible {
+  z-index: 1;
+  outline: 2px solid var(--seal);
+  outline-offset: 2px;
+}
+
+.heat-0 {
+  background: var(--rule);
+}
+
+.heat-1 {
+  background: color-mix(in srgb, var(--seal) 25%, var(--rule));
+}
+
+.heat-2 {
+  background: color-mix(in srgb, var(--seal) 45%, var(--rule));
+}
+
+.heat-3 {
+  background: color-mix(in srgb, var(--seal) 70%, var(--rule));
+}
+
+.heat-4 {
+  background: var(--seal);
+}
+
+.heat-key {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  margin-top: 12px;
+  font-size: var(--fs-caption);
+  color: var(--ink-faint);
+}
+
+.heat-key i {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+/* ---------- 细线数据行（回顾页；设置页存储信息也复用）---------- */
+.data-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 0;
+  border-top: 1px solid var(--rule);
+  font-size: var(--fs-small);
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.data-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.data-row > strong {
+  max-width: 62%;
+  text-align: right;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- 匿名小结弹层 ---------- */
+.share-result {
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.share-preview {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+
+.share-heat {
+  margin-bottom: 14px;
+}
+
+.share-save-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: center;
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: var(--fs-small);
+  color: var(--seal);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.share-save-link:focus-visible {
+  outline: 2px solid var(--seal);
+  outline-offset: 2px;
+}
+
+/* ---------- 指针设备的小反馈 ---------- */
+@media (hover: hover) {
+  .stat-entry:hover {
+    border-color: var(--rule-strong);
+  }
+
+  .range-select button:hover {
+    color: var(--ink);
+  }
+
+  .heat:hover {
+    outline: 2px solid var(--seal);
+    outline-offset: 2px;
+  }
+}
+
+/* ---------- 桌面：放大留白与字号 ---------- */
+@media (min-width: 650px) {
+  .stat-entry {
+    padding: 16px 18px;
+  }
+
+  .metric {
+    min-height: 132px;
+    padding: 18px;
+  }
+
+  .metric strong {
+    font-size: 38px;
+  }
+
+  .chart {
+    height: 240px;
+  }
+
+  .heat-grid {
+    gap: 5px;
+    padding: 9px;
+  }
+}
+
+/* ---------- 减少动态 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .stat-entry,
+  .range-select button,
+  .heat {
+    transition: none;
+  }
+}

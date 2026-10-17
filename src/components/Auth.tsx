@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { LockKeyhole, ShieldCheck, ArrowRight } from "lucide-react";
+import { ShieldCheck, ArrowRight } from "lucide-react";
 import { createVault, Vault, db, userError } from "../lib/db";
 import type { VaultConfig, QuickUnlockBinding } from "../lib/models";
 import {
@@ -107,7 +107,7 @@ export function Auth({
         setPassword("");
         await onUnlock(result.vault, c.signal, result.guard);
       } else {
-        if (password !== repeat) throw new Error("两次输入的密码不同");
+        if (password !== repeat) throw new Error("两次输入的密码不一样。");
         const { key, config: newConfig } = await createVault(
           password,
           db,
@@ -132,34 +132,34 @@ export function Auth({
   return (
     <div className="auth">
       <div className="auth-brand">
-        <span className="brand-mark">
-          <LockKeyhole size={31} strokeWidth={1.6} />
+        <span className="brand-mark" aria-hidden="true">
+          私
         </span>
         <span>
-          私记<small>PRIVATE JOURNAL</small>
+          私记<small>只写给自己</small>
         </span>
       </div>
       <div className="auth-intro">
-        <span className="eyebrow">照片 · 时间 · 日常</span>
+        <span className="eyebrow">私人手记 · 本机加密</span>
         <h1>
-          {config ? "你的记录，\n只向你打开。" : "留住日常，\n留给自己。"}
+          {config ? "这册手记，\n只为你翻开。" : "从今天起，\n写一本自己的手记。"}
         </h1>
         <p>
           {config
-            ? "输入密码，回到自己的私人空间。"
-            : "一个只存在于你设备里的私人空间。\n从设置本地解锁密码开始。"}
+            ? "输入密码，回到上次那一页。"
+            : "没有账号，也不上传任何东西。\n设一个只有你知道的密码，写下第一页。"}
         </p>
       </div>
       <form className="card auth-form" onSubmit={(e) => void submit(e)}>
         <fieldset disabled={busy}>
           <label className="field">
-            {config ? "解锁密码" : "设置解锁密码"}
+            {config ? "密码" : "设置密码"}
             <input
               type="password"
               autoComplete={config ? "current-password" : "new-password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={config ? "输入你的密码" : "至少 8 个字符"}
+              placeholder={config ? "只有你知道的密码" : "至少 8 个字符"}
               required
               minLength={config ? 1 : 8}
             />
@@ -183,7 +183,7 @@ export function Auth({
             </p>
           )}
           <button className="primary wide" disabled={busy} type="submit">
-            {busy ? "正在解锁…" : config ? "解锁私记" : "创建本地空间"}
+            {busy ? "正在开锁…" : config ? "打开手记" : "开启手记"}
             <ArrowRight size={19} />
           </button>
         </fieldset>
@@ -217,14 +217,14 @@ export function Auth({
               }
             }}
           >
-            使用系统快速解锁
+            用面容 / 指纹打开
           </button>
           <p className="auth-warning">
             {!capable
-              ? "此环境无法使用系统验证，请输入主密码。"
+              ? "这里暂时用不了系统验证，请输入密码。"
               : !canQuick
-                ? "快速解锁窗口已过期，请输入主密码重新开始窗口。"
-                : "支持的设备可使用面容、指纹或设备验证。"}
+                ? "快速验证已过期，输入密码可以重新开始。"
+                : "这台设备可以用面容、指纹或设备密码打开。"}
           </p>
         </>
       )}
@@ -243,12 +243,12 @@ export function Auth({
       )}
       <div className="auth-privacy">
         <ShieldCheck size={18} />
-        <span>本机加密 · 离线可用 · 照片不上传</span>
+        <span>只在本机 · 离线可用 · 不上传</span>
       </div>
       <p className="auth-warning">
         {config
-          ? "密码无法找回。若更换设备，请用加密备份恢复。"
-          : "请妥善保存密码并定期导出备份。浏览器存储可能被清理，忘记密码无法找回数据。"}
+          ? "密码找不回来。换设备时，请用加密备份恢复。"
+          : "请记住密码，并定期导出备份。浏览器数据可能被清理，忘记密码就无法找回。"}
       </p>
       {config && (
         <button
@@ -262,10 +262,10 @@ export function Auth({
       {reset && (
         <div className="card form-stack">
           <p className="muted">
-            只能删除本机保险库后重新开始；若有加密备份，可创建新密码后恢复。此操作无法撤销。
+            只能删掉本机的手记重新开始。如果有加密备份，可以设个新密码再恢复。这个操作无法撤销。
           </p>
           <label className="field">
-            输入“删除本机保险库”
+            输入「删掉这本手记」
             <input
               value={confirmation}
               onChange={(e) => setConfirmation(e.target.value)}
@@ -273,7 +273,7 @@ export function Auth({
           </label>
           <button
             className="danger-button"
-            disabled={confirmation !== "删除本机保险库" || busy}
+            disabled={confirmation !== "删掉这本手记" || busy}
             onClick={() =>
               void (async () => {
                 try {
@@ -297,7 +297,7 @@ export function Auth({
               })()
             }
           >
-            删除本机保险库
+            删掉这本手记
           </button>
         </div>
       )}

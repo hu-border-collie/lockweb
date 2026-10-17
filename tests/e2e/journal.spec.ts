@@ -7,9 +7,9 @@ test("offline journal tools: encrypted preferences, breaks, redaction, stealth, 
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await page.getByLabel("设置解锁密码").fill("test-password");
+  await page.getByLabel("设置密码").fill("test-password");
   await page.getByLabel("确认密码", { exact: true }).fill("test-password");
-  await page.getByRole("button", { name: "创建本地空间" }).click();
+  await page.getByRole("button", { name: "开启手记" }).click();
   const nav = async (name: string) =>
     page
       .getByRole("navigation")
@@ -17,10 +17,10 @@ test("offline journal tools: encrypted preferences, breaks, redaction, stealth, 
       .click();
   await nav("设置");
   await expect(
-    page.getByText("应用资源已缓存，可离线使用", { exact: true }),
+    page.getByText("应用已缓存，可以离线使用", { exact: true }),
   ).toBeVisible();
   await context.setOffline(true);
-  await page.getByRole("button", { name: "模板、快捷标签与装备档案" }).click();
+  await page.getByRole("button", { name: "模板、快捷标签与装备" }).click();
   await page.getByRole("button", { name: "新增模板" }).click();
   await page.getByLabel("模板名称").fill("日常检查");
   await page.getByLabel("模板内容").fill("私密测试问题：正常");
@@ -29,16 +29,16 @@ test("offline journal tools: encrypted preferences, breaks, redaction, stealth, 
   await page.getByLabel("装备名称").fill("测试装备");
   await page.getByLabel("材质", { exact: true }).fill("金属");
   await page.getByRole("button", { name: "保留装备到草稿" }).click();
-  await page.getByRole("button", { name: "保存全部偏好与档案" }).click();
+  await page.getByRole("button", { name: "保存这些设置" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await nav("首页");
-  await page.getByLabel("本次佩戴装备").selectOption({ label: "测试装备" });
+  await nav("今天");
+  await page.getByLabel("这次的装备").selectOption({ label: "测试装备" });
   await page.getByRole("button", { name: "开始佩戴", exact: true }).click();
   await page.getByRole("button", { name: "清洁小憩", exact: true }).click();
-  await expect(page.getByText("清洁小憩中", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "恢复佩戴", exact: true }).click();
+  await expect(page.getByText("小憩中", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "继续佩戴", exact: true }).click();
   await expect(page.getByText("正在佩戴", { exact: true })).toBeVisible();
-  await nav("打卡");
+  await nav("记录");
   await page
     .getByLabel("从相册选择照片")
     .setInputFiles([
@@ -46,15 +46,15 @@ test("offline journal tools: encrypted preferences, breaks, redaction, stealth, 
       path.resolve("tests/fixture.jpg"),
     ]);
   await expect(
-    page.getByRole("button", { name: "保存打卡", exact: true }),
+    page.getByRole("button", { name: "收进今天", exact: true }),
   ).toBeEnabled();
-  await page.getByLabel("载入模板").selectOption({ label: "日常检查" });
+  await page.getByLabel("套用模板").selectOption({ label: "日常检查" });
   await expect(
     page.getByRole("textbox", { name: "备注", exact: true }),
   ).toHaveValue("私密测试问题：正常");
   await page.getByRole("button", { name: "运动", exact: true }).click();
   await page.getByRole("button", { name: "4", exact: true }).click();
-  await page.getByRole("button", { name: "打码", exact: true }).first().click();
+  await page.getByRole("button", { name: "遮一下", exact: true }).first().click();
   const canvas = page.getByLabel("照片打码画布");
   await expect(canvas).toHaveAttribute("width", "800");
   await canvas.scrollIntoViewIfNeeded();
@@ -96,7 +96,7 @@ test("offline journal tools: encrypted preferences, breaks, redaction, stealth, 
       ].slice(0, 3),
     ),
   ).toEqual([0, 0, 0]);
-  await page.getByRole("button", { name: "撤销一笔", exact: true }).click();
+  await page.getByRole("button", { name: "撤回一笔", exact: true }).click();
   expect(
     await canvas.evaluate((c: HTMLCanvasElement) =>
       [
@@ -106,9 +106,9 @@ test("offline journal tools: encrypted preferences, breaks, redaction, stealth, 
     ),
   ).toEqual([0, 0, 0]);
   await drawMosaic();
-  await page.getByRole("button", { name: "应用打码", exact: true }).click();
+  await page.getByRole("button", { name: "就遮这样", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page.getByRole("button", { name: "保存打卡", exact: true }).click();
+  await page.getByRole("button", { name: "收进今天", exact: true }).click();
   await expect(
     page.getByText("私密测试问题：正常", { exact: true }),
   ).toBeVisible();
@@ -143,18 +143,18 @@ test("offline journal tools: encrypted preferences, breaks, redaction, stealth, 
   ).toBe(true);
   await page.getByRole("button", { name: "关闭照片" }).click();
   await nav("日历");
-  await page.getByRole("button", { name: "选择照片对比" }).click();
+  await page.getByRole("button", { name: "挑两张照片对比" }).click();
   const checks = page.locator(".compare-picks input");
   await checks.nth(0).check();
   await checks.nth(1).check();
-  await page.getByRole("button", { name: "对比已选照片（2/2）" }).click();
+  await page.getByRole("button", { name: "开始对比（2/2）" }).click();
   await expect(
     page.getByRole("dialog", { name: "照片对比" }).locator("img"),
   ).toHaveCount(2);
-  await page.getByRole("button", { name: "卷帘对比", exact: true }).click();
-  await page.getByLabel("对比分界线").focus();
-  await page.getByLabel("对比分界线").press("Home");
-  await page.getByLabel("对比分界线").press("ArrowRight");
+  await page.getByRole("button", { name: "卷帘看", exact: true }).click();
+  await page.getByLabel("对比线").focus();
+  await page.getByLabel("对比线").press("Home");
+  await page.getByLabel("对比线").press("ArrowRight");
   const divider = page.getByRole("slider", { name: "照片卷帘分界线" });
   await divider.scrollIntoViewIfNeeded();
   const dividerBox = (await divider.boundingBox())!,
@@ -175,43 +175,43 @@ test("offline journal tools: encrypted preferences, breaks, redaction, stealth, 
     fullPage: true,
   });
   await page.getByRole("button", { name: "关闭", exact: true }).click();
-  await nav("统计");
+  await nav("回顾");
   await expect(page.getByText("测试装备", { exact: true })).toBeVisible();
   await expect(page.getByText("4.00", { exact: true }).first()).toBeVisible();
-  await page.getByRole("button", { name: "生成脱敏战报", exact: true }).click();
-  await page.getByRole("button", { name: "生成战报预览", exact: true }).click();
-  await expect(page.getByAltText("脱敏战报预览")).toBeVisible();
+  await page.getByRole("button", { name: "做一张匿名小结", exact: true }).click();
+  await page.getByRole("button", { name: "生成小结", exact: true }).click();
+  await expect(page.getByAltText("匿名小结预览")).toBeVisible();
   const dl = page.waitForEvent("download");
-  await page.getByRole("link", { name: "保存战报图片" }).click();
+  await page.getByRole("link", { name: "保存图片" }).click();
   await (await dl).saveAs(info.outputPath("share.png"));
   await page.getByRole("button", { name: "关闭", exact: true }).click();
   await nav("设置");
   await page.getByRole("button", { name: "分析照片占用" }).click();
   await expect(page.getByText(/2 张/)).toBeVisible();
-  await page.getByRole("button", { name: "导出加密备份" }).click();
+  await page.getByRole("button", { name: "导出一份加密备份" }).click();
   await page.getByLabel("备份密码", { exact: true }).fill("backup-password");
   await page.getByLabel("再次输入备份密码").fill("backup-password");
-  await page.getByRole("button", { name: "生成加密备份" }).click();
+  await page.getByRole("button", { name: "开始打包" }).click();
   const backupDownload = page.waitForEvent("download");
   await page.getByRole("link", { name: /直接下载/ }).click();
   const backup = info.outputPath("journal.plog");
   await (await backupDownload).saveAs(backup);
   await page.getByRole("button", { name: "关闭", exact: true }).click();
-  await page.getByRole("button", { name: "清空所有记录与照片" }).click();
-  await page.getByLabel("请输入“清空”确认").fill("清空");
-  await page.getByRole("button", { name: "确认清空数据" }).click();
-  await expect(page.getByText("全部记录与照片已清空。")).toBeVisible();
+  await page.getByRole("button", { name: "清空这本手记" }).click();
+  await page.getByLabel("输入「清空」确认").fill("清空");
+  await page.getByRole("button", { name: "确认清空" }).click();
+  await expect(page.getByText("这本手记已经清空。")).toBeVisible();
   await page.getByRole("button", { name: "关闭", exact: true }).click();
-  await page.getByRole("button", { name: "从备份恢复" }).click();
+  await page.getByRole("button", { name: "用备份恢复" }).click();
   await page.getByLabel("选择备份文件").setInputFiles(backup);
   await page.getByLabel("备份密码", { exact: true }).fill("backup-password");
-  await page.getByRole("button", { name: "验证备份" }).click();
-  await page.getByRole("button", { name: "确认覆盖恢复" }).click();
-  await expect(page.getByText("记录与照片已完整恢复。")).toBeVisible();
+  await page.getByRole("button", { name: "检查备份" }).click();
+  await page.getByRole("button", { name: "覆盖并恢复" }).click();
+  await expect(page.getByText("记录和照片已经完整恢复。")).toBeVisible();
   await page.getByRole("button", { name: "关闭", exact: true }).click();
   await page.reload();
-  await page.getByLabel("解锁密码", { exact: true }).fill("test-password");
-  await page.getByRole("button", { name: "解锁私记", exact: true }).click();
+  await page.getByLabel("密码", { exact: true }).fill("test-password");
+  await page.getByRole("button", { name: "打开手记", exact: true }).click();
   await expect(page.getByRole("button", { name: "防窥模式" })).toHaveAttribute(
     "aria-pressed",
     "true",
@@ -220,7 +220,7 @@ test("offline journal tools: encrypted preferences, breaks, redaction, stealth, 
     page.getByText("私密测试问题：正常", { exact: true }),
   ).toBeVisible();
   await nav("设置");
-  await page.getByRole("button", { name: "模板、快捷标签与装备档案" }).click();
+  await page.getByRole("button", { name: "模板、快捷标签与装备" }).click();
   await expect(
     page.getByRole("button", { name: "日常检查", exact: true }),
   ).toBeVisible();
@@ -246,9 +246,9 @@ test("keeps a comparison selection when choosing a photo in another month", asyn
   page,
 }) => {
   await page.goto("/");
-  await page.getByLabel("设置解锁密码").fill("test-password");
+  await page.getByLabel("设置密码").fill("test-password");
   await page.getByLabel("确认密码", { exact: true }).fill("test-password");
-  await page.getByRole("button", { name: "创建本地空间" }).click();
+  await page.getByRole("button", { name: "开启手记" }).click();
   const dates = await page.evaluate(() => {
     const today = new Date(),
       previous = new Date();
@@ -270,38 +270,38 @@ test("keeps a comparison selection when choosing a photo in another month", asyn
       .getByRole("button", { name, exact: true })
       .click();
   for (const time of [null, dates.input]) {
-    await nav("打卡");
+    await nav("记录");
     await page
       .getByLabel("从相册选择照片")
       .setInputFiles(path.resolve("tests/fixture.jpg"));
     await expect(
-      page.getByRole("button", { name: "保存打卡", exact: true }),
+      page.getByRole("button", { name: "收进今天", exact: true }),
     ).toBeEnabled();
-    if (time) await page.getByLabel("打卡时间", { exact: true }).fill(time);
-    await page.getByRole("button", { name: "保存打卡", exact: true }).click();
+    if (time) await page.getByLabel("记录时间", { exact: true }).fill(time);
+    await page.getByRole("button", { name: "收进今天", exact: true }).click();
     await expect(
       page.getByRole("button", { name: "开始佩戴", exact: true }),
     ).toBeVisible();
   }
   await nav("日历");
-  await page.getByRole("button", { name: "选择照片对比", exact: true }).click();
+  await page.getByRole("button", { name: "挑两张照片对比", exact: true }).click();
   await page.locator(".compare-picks input").check();
   await expect(
-    page.getByRole("button", { name: "对比已选照片（1/2）", exact: true }),
+    page.getByRole("button", { name: "开始对比（1/2）", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "上个月", exact: true }).click();
   await page
-    .getByRole("button", { name: `${dates.previous}，1 次打卡`, exact: true })
+    .getByRole("button", { name: `${dates.previous}，1 笔记录`, exact: true })
     .click();
   await expect(
-    page.getByRole("button", { name: "取消选择对比", exact: true }),
+    page.getByRole("button", { name: "取消对比", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "对比已选照片（1/2）", exact: true }),
+    page.getByRole("button", { name: "开始对比（1/2）", exact: true }),
   ).toBeVisible();
   await page.locator(".compare-picks input").check();
   await page
-    .getByRole("button", { name: "对比已选照片（2/2）", exact: true })
+    .getByRole("button", { name: "开始对比（2/2）", exact: true })
     .click();
   await expect(
     page.getByRole("dialog", { name: "照片对比" }).locator("img"),

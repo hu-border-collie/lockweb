@@ -6,31 +6,31 @@ test("opens a populated v4 vault after an atomic store migration", async ({
   context,
 }) => {
   await page.goto("/");
-  await page.getByLabel("设置解锁密码").fill("migration-password");
+  await page.getByLabel("设置密码").fill("migration-password");
   await page.getByLabel("确认密码", { exact: true }).fill("migration-password");
-  await page.getByRole("button", { name: "创建本地空间" }).click();
+  await page.getByRole("button", { name: "开启手记" }).click();
   await page.getByRole("button", { name: "开始佩戴", exact: true }).click();
   await page.getByRole("button", { name: "清洁小憩", exact: true }).click();
-  await expect(page.getByText("清洁小憩中", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "恢复佩戴", exact: true }).click();
+  await expect(page.getByText("小憩中", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "继续佩戴", exact: true }).click();
   await expect(page.getByText("正在佩戴", { exact: true })).toBeVisible();
   await page
     .getByRole("navigation")
-    .getByRole("button", { name: "打卡", exact: true })
+    .getByRole("button", { name: "记录", exact: true })
     .click();
   await page
     .getByLabel("从相册选择照片")
     .setInputFiles(path.resolve("tests/fixture.jpg"));
   await expect(
-    page.getByRole("button", { name: "保存打卡", exact: true }),
+    page.getByRole("button", { name: "收进今天", exact: true }),
   ).toBeEnabled();
-  await page.getByRole("button", { name: "添加备注与感受" }).click();
+  await page.getByRole("button", { name: "再写两句" }).click();
   await page
     .getByRole("textbox", { name: "备注", exact: true })
     .fill("migration control");
-  await page.getByRole("button", { name: "保存打卡", exact: true }).click();
+  await page.getByRole("button", { name: "收进今天", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "结束本次佩戴", exact: true }),
+    page.getByRole("button", { name: "结束佩戴", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByText("migration control", { exact: true }),
@@ -102,8 +102,8 @@ test("opens a populated v4 vault after an atomic store migration", async ({
   expect(copiedCounts.slice(1)).toEqual([1, 1, 1]);
   await helper.close();
   await page.goto("/");
-  await page.getByLabel("解锁密码", { exact: true }).fill("migration-password");
-  await page.getByRole("button", { name: "解锁私记", exact: true }).click();
+  await page.getByLabel("密码", { exact: true }).fill("migration-password");
+  await page.getByRole("button", { name: "打开手记", exact: true }).click();
   await expect(
     page.getByText("migration control", { exact: true }),
   ).toBeVisible();

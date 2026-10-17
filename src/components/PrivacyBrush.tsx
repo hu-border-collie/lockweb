@@ -91,7 +91,7 @@ export function PrivacyBrush({
       }
     };
     img.onerror = () => {
-      if (alive.current) setError("照片读取失败");
+      if (alive.current) setError("照片没能打开");
     };
     img.src = url;
     return () => {
@@ -120,20 +120,20 @@ export function PrivacyBrush({
   };
   return (
     <Modal
-      title="照片隐私打码"
+      title="把照片遮一遮"
       onClose={() => {
         if (!busy) onClose();
       }}
     >
-      <p className="muted">
-        黑笔适合彻底遮挡；马赛克只降低细节。应用后仍需保存打卡。保存成功时替换大图与缩略图，新照片的源文件不会写入本地库。
+      <p className="muted brush-intro">
+        黑笔可以彻底涂掉；马赛克只是降低清晰度。遮好后仍然要记得保存这一页，保存时才会替换本机里的照片。
       </p>
-      <div className="segmented">
+      <div className="segmented brush-modes">
         <button
           className={mode === "black" ? "selected" : ""}
           onClick={() => setMode("black")}
         >
-          黑色遮挡
+          黑笔
         </button>
         <button
           className={mode === "mosaic" ? "selected" : ""}
@@ -142,7 +142,7 @@ export function PrivacyBrush({
           马赛克
         </button>
       </div>
-      <label className="field">
+      <label className="field brush-width">
         笔刷粗细
         <input
           type="range"
@@ -152,34 +152,36 @@ export function PrivacyBrush({
           onChange={(e) => setWidth(Number(e.target.value))}
         />
       </label>
-      <canvas
-        ref={canvas}
-        className="brush-canvas"
-        aria-label="照片打码画布"
-        onPointerDown={(e) => {
-          if (!loaded || busy || drawing.current !== null) return;
-          drawing.current = e.pointerId;
-          e.currentTarget.setPointerCapture(e.pointerId);
-          strokes.current.push({ mode, width, points: [point(e)] });
-          setCount(strokes.current.length);
-          render();
-        }}
-        onPointerMove={(e) => {
-          if (drawing.current !== e.pointerId) return;
-          strokes.current.at(-1)!.points.push(point(e));
-          render();
-        }}
-        onPointerUp={() => {
-          drawing.current = null;
-        }}
-        onPointerCancel={() => {
-          drawing.current = null;
-        }}
-        onLostPointerCapture={() => {
-          drawing.current = null;
-        }}
-      />
-      <div className="option-row">
+      <div className="brush-stage">
+        <canvas
+          ref={canvas}
+          className="brush-canvas"
+          aria-label="照片打码画布"
+          onPointerDown={(e) => {
+            if (!loaded || busy || drawing.current !== null) return;
+            drawing.current = e.pointerId;
+            e.currentTarget.setPointerCapture(e.pointerId);
+            strokes.current.push({ mode, width, points: [point(e)] });
+            setCount(strokes.current.length);
+            render();
+          }}
+          onPointerMove={(e) => {
+            if (drawing.current !== e.pointerId) return;
+            strokes.current.at(-1)!.points.push(point(e));
+            render();
+          }}
+          onPointerUp={() => {
+            drawing.current = null;
+          }}
+          onPointerCancel={() => {
+            drawing.current = null;
+          }}
+          onLostPointerCapture={() => {
+            drawing.current = null;
+          }}
+        />
+      </div>
+      <div className="option-row brush-actions">
         <button
           className="secondary"
           disabled={!count || busy}
@@ -189,7 +191,7 @@ export function PrivacyBrush({
             render();
           }}
         >
-          撤销一笔
+          撤回一笔
         </button>
         <button
           className="secondary"
@@ -200,7 +202,7 @@ export function PrivacyBrush({
             render();
           }}
         >
-          重置打码
+          全部重来
         </button>
       </div>
       {error && (
@@ -217,7 +219,7 @@ export function PrivacyBrush({
           try {
             const b = await new Promise<Blob>((resolve, reject) =>
               canvas.current!.toBlob(
-                (b) => (b ? resolve(b) : reject(new Error("无法生成打码照片"))),
+                (b) => (b ? resolve(b) : reject(new Error("没能生成遮好的照片"))),
                 "image/jpeg",
                 0.95,
               ),
@@ -234,7 +236,7 @@ export function PrivacyBrush({
           }
         }}
       >
-        {busy ? "正在生成打码照片…" : "应用打码"}
+        {busy ? "正在生成…" : "就遮这样"}
       </button>
     </Modal>
   );

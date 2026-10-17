@@ -1,11 +1,16 @@
 import { test, expect, type Page } from "@playwright/test";
+const homeTab = (page: Page) =>
+  page
+    .getByRole("navigation")
+    .getByRole("button", { name: "今天", exact: true });
+
 async function create(page: Page) {
-  await page.getByLabel("设置解锁密码").fill("test-password");
+  await page.getByLabel("设置密码").fill("test-password");
   await page.getByLabel("确认密码", { exact: true }).fill("test-password");
-  await page.getByRole("button", { name: "创建本地空间" }).click();
+  await page.getByRole("button", { name: "开启手记" }).click();
   await expect(
-    page.getByRole("heading", { name: "今天，留给自己。" }),
-  ).toBeVisible();
+    homeTab(page),
+  ).toHaveAttribute("aria-current", "page");
 }
 const settings = async (page: Page) =>
   page
@@ -67,7 +72,7 @@ for (const hours of [0, 24]) {
       .getByRole("button", { name: "验证并启用快速解锁", exact: true })
       .click();
     await expect(
-      page.getByText("快速解锁已启用，下次锁定后可使用系统验证。"),
+      page.getByText("快速解锁已经启用，下次合上手记就能用系统验证打开。"),
     ).toBeVisible();
     if (hours === 0) {
       await expect(
@@ -83,27 +88,27 @@ for (const hours of [0, 24]) {
       fullPage: true,
     });
     await expect(
-      page.getByText("应用资源已缓存，可离线使用", { exact: true }),
+      page.getByText("应用已缓存，可以离线使用", { exact: true }),
     ).toBeVisible();
     await page.evaluate(() => navigator.serviceWorker.ready);
     await context.setOffline(true);
     await page.reload();
     await expect(
-      page.getByRole("button", { name: "使用系统快速解锁", exact: true }),
+      page.getByRole("button", { name: "用面容 / 指纹打开", exact: true }),
     ).toBeEnabled();
     await page
-      .getByRole("button", { name: "使用系统快速解锁", exact: true })
+      .getByRole("button", { name: "用面容 / 指纹打开", exact: true })
       .click();
     await expect(
-      page.getByRole("heading", { name: "今天，留给自己。" }),
-    ).toBeVisible();
+      homeTab(page),
+  ).toHaveAttribute("aria-current", "page");
     await page.getByRole("button", { name: "锁定应用", exact: true }).click();
     await cdp.send("WebAuthn.setAutomaticPresenceSimulation", {
       authenticatorId,
       enabled: false,
     });
     await page
-      .getByRole("button", { name: "使用系统快速解锁", exact: true })
+      .getByRole("button", { name: "用面容 / 指纹打开", exact: true })
       .click();
     await page.getByRole("button", { name: "取消解锁", exact: true }).click();
     await cdp.send("WebAuthn.setAutomaticPresenceSimulation", {
@@ -111,16 +116,16 @@ for (const hours of [0, 24]) {
       enabled: true,
     });
     await expect(
-      page.getByRole("heading", { name: "今天，留给自己。" }),
-    ).toHaveCount(0);
+      homeTab(page),
+  ).toHaveCount(0);
     await expect(
-      page.getByRole("button", { name: "解锁私记", exact: true }),
+      page.getByRole("button", { name: "打开手记", exact: true }),
     ).toBeEnabled();
-    await page.getByLabel("解锁密码", { exact: true }).fill("test-password");
-    await page.getByRole("button", { name: "解锁私记", exact: true }).click();
+    await page.getByLabel("密码", { exact: true }).fill("test-password");
+    await page.getByRole("button", { name: "打开手记", exact: true }).click();
     await settings(page);
     await expect(
-      page.getByRole("button", { name: "停用本地快速解锁", exact: true }),
+      page.getByRole("button", { name: "停用快速解锁", exact: true }),
     ).toBeVisible();
     if (hours === 24) {
       await page
@@ -141,34 +146,34 @@ for (const hours of [0, 24]) {
       await page.getByRole("button", { name: "锁定应用", exact: true }).click();
       await page.reload();
       await page
-        .getByRole("button", { name: "使用系统快速解锁", exact: true })
+        .getByRole("button", { name: "用面容 / 指纹打开", exact: true })
         .click();
       await expect(
-        page.getByRole("heading", { name: "今天，留给自己。" }),
-      ).toBeVisible();
+        homeTab(page),
+  ).toHaveAttribute("aria-current", "page");
       await settings(page);
     }
-    await page.getByRole("button", { name: "修改解锁密码" }).click();
+    await page.getByRole("button", { name: "更换密码" }).click();
     await page.getByLabel("当前密码", { exact: true }).fill("test-password");
     await page.getByLabel("新密码", { exact: true }).fill("new-password");
     await page.getByLabel("再次输入新密码").fill("new-password");
     await page.getByRole("button", { name: "保存新密码", exact: true }).click();
     await expect(
-      page.getByText("密码已修改，下次解锁请使用新密码。"),
+      page.getByText("密码已经换好，下次请用新密码。"),
     ).toBeVisible();
     await page.getByRole("button", { name: "关闭", exact: true }).click();
     await expect(
-      page.getByRole("button", { name: "停用本地快速解锁", exact: true }),
+      page.getByRole("button", { name: "停用快速解锁", exact: true }),
     ).toHaveCount(0);
     await page.getByRole("button", { name: "锁定应用", exact: true }).click();
     await expect(
-      page.getByRole("button", { name: "使用系统快速解锁", exact: true }),
+      page.getByRole("button", { name: "用面容 / 指纹打开", exact: true }),
     ).toHaveCount(0);
-    await page.getByLabel("解锁密码", { exact: true }).fill("new-password");
-    await page.getByRole("button", { name: "解锁私记", exact: true }).click();
+    await page.getByLabel("密码", { exact: true }).fill("new-password");
+    await page.getByRole("button", { name: "打开手记", exact: true }).click();
     await expect(
-      page.getByRole("heading", { name: "今天，留给自己。" }),
-    ).toBeVisible();
+      homeTab(page),
+  ).toHaveAttribute("aria-current", "page");
     expect(errors).toEqual([]);
   });
 }
@@ -243,14 +248,14 @@ test("simulated unsupported PRF keeps password access and never writes a quick b
   await expect(page.getByRole("alert")).toContainText("无法用于快速解锁");
   await page.getByRole("button", { name: "取消设置", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "停用本地快速解锁", exact: true }),
+    page.getByRole("button", { name: "停用快速解锁", exact: true }),
   ).toHaveCount(0);
   await page.getByRole("button", { name: "锁定应用", exact: true }).click();
-  await page.getByLabel("解锁密码", { exact: true }).fill("test-password");
-  await page.getByRole("button", { name: "解锁私记", exact: true }).click();
+  await page.getByLabel("密码", { exact: true }).fill("test-password");
+  await page.getByRole("button", { name: "打开手记", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "今天，留给自己。" }),
-  ).toBeVisible();
+    homeTab(page),
+  ).toHaveAttribute("aria-current", "page");
 });
 test("missing WebAuthn API disables setup and leaves normal password unlock available", async ({
   page,
@@ -270,13 +275,13 @@ test("missing WebAuthn API disables setup and leaves normal password unlock avai
     page.getByRole("button", { name: "启用快速解锁", exact: true }),
   ).toBeDisabled();
   await expect(
-    page.getByText("当前环境无法使用系统快速解锁，密码解锁仍可用。"),
+    page.getByText("这里用不了快速解锁，密码仍然可以打开。"),
   ).toBeVisible();
   await page.getByRole("button", { name: "锁定应用", exact: true }).click();
-  await page.getByLabel("解锁密码", { exact: true }).fill("test-password");
-  await page.getByRole("button", { name: "解锁私记", exact: true }).click();
+  await page.getByLabel("密码", { exact: true }).fill("test-password");
+  await page.getByRole("button", { name: "打开手记", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "今天，留给自己。" }),
-  ).toBeVisible();
+    homeTab(page),
+  ).toHaveAttribute("aria-current", "page");
   expect(errors).toEqual([]);
 });

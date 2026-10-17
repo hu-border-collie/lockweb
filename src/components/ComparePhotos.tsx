@@ -90,20 +90,24 @@ export function ComparePhotos({
     <Modal title="照片对比" onClose={onClose}>
       <p className="muted">
         相隔 {duration(Math.abs(photos[0].timestamp - photos[1].timestamp))} ·
-        两张照片同步缩放与拖动
+        两张照片一起看
       </p>
-      <div className="segmented">
+      <div className="segmented compare-modes">
         <button
+          type="button"
           className={mode === "side" ? "selected" : ""}
+          aria-pressed={mode === "side"}
           onClick={() => setMode("side")}
         >
-          并排查看
+          并排看
         </button>
         <button
+          type="button"
           className={mode === "split" ? "selected" : ""}
+          aria-pressed={mode === "split"}
           onClick={() => setMode("split")}
         >
-          卷帘对比
+          卷帘看
         </button>
       </div>
       {error && (
@@ -194,8 +198,8 @@ export function ComparePhotos({
             </div>
           )}
           {mode === "split" && (
-            <label className="field">
-              对比分界线
+            <label className="field compare-range">
+              对比线
               <input
                 type="range"
                 min={0}
@@ -205,7 +209,7 @@ export function ComparePhotos({
               />
             </label>
           )}
-          <label className="field">
+          <label className="field compare-range">
             同步缩放
             <input
               type="range"
@@ -220,17 +224,18 @@ export function ComparePhotos({
             />
           </label>
           <button
-            className="secondary"
+            type="button"
+            className="secondary wide compare-reset"
             onClick={() => {
               setZoom(1);
               setOffset({ x: 0, y: 0 });
             }}
           >
-            重置对比视图
+            重置视图
           </button>
         </>
       ) : (
-        !error && <p className="muted">正在解密两张照片…</p>
+        !error && <p className="muted">正在解开两张照片…</p>
       )}
     </Modal>
   );

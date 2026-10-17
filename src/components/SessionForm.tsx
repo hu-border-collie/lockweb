@@ -57,8 +57,8 @@ export function SessionForm({
     }
   }
   return (
-    <fieldset className="form-stack" disabled={busy}>
-      <p className="muted">佩戴时段独立于拍照打卡。重叠部分只统计一次。</p>
+    <fieldset className="form-stack session-form" disabled={busy}>
+      <p className="muted session-intro">时段和照片分开记；重叠的时间只算一次。</p>
       <label className="field">
         开始时间
         <input
@@ -101,9 +101,9 @@ export function SessionForm({
       </label>
       {settings.gears.length > 0 && (
         <label className="field">
-          时段装备
+          这个时段的装备
           <select value={gearId} onChange={(e) => setGearId(e.target.value)}>
-            <option value="">不选择装备</option>
+            <option value="">不选装备</option>
             {settings.gears
               .filter((g) => !g.archived || g.id === gearId)
               .map((g) => (
@@ -115,12 +115,16 @@ export function SessionForm({
           </select>
         </label>
       )}
-      <h3>清洁小憩</h3>
-      <p className="muted">按开始时间顺序填写，小憩必须在时段内且不能重叠。</p>
+      <div className="section-line session-breaks-heading">
+        <h3>清洁小憩</h3>
+      </div>
+      <p className="muted break-hint">
+        按开始时间填，小憩要在时段内，也不能互相重叠。
+      </p>
       {breaks.map((b, i) => (
-        <div className="card" key={i}>
+        <div className="break-block" key={i}>
           <label className="field">
-            小憩 {i + 1} 开始
+            第 {i + 1} 次小憩 · 开始
             <input
               type="datetime-local"
               value={localInput(b.start)}
@@ -149,11 +153,11 @@ export function SessionForm({
                 )
               }
             />
-            小憩 {i + 1} 仍在进行
+            第 {i + 1} 次小憩 · 仍在进行
           </label>
           {b.end !== null && (
             <label className="field">
-              小憩 {i + 1} 结束
+              第 {i + 1} 次小憩 · 结束
               <input
                 type="datetime-local"
                 value={localInput(b.end)}
@@ -169,7 +173,7 @@ export function SessionForm({
             </label>
           )}
           <label className="field">
-            小憩 {i + 1} 备注
+            第 {i + 1} 次小憩 · 备注
             <input
               maxLength={10000}
               value={b.note ?? ""}
@@ -183,15 +187,15 @@ export function SessionForm({
             />
           </label>
           <button
-            className="danger-text"
+            className="danger-text break-remove"
             onClick={() => setBreaks(breaks.filter((_, j) => i !== j))}
           >
-            移除小憩 {i + 1}
+            移除第 {i + 1} 次小憩
           </button>
         </div>
       ))}
       <button
-        className="secondary"
+        className="secondary wide break-add"
         onClick={() => {
           const stop = ongoing ? Date.now() : fromInput(end);
           setBreaks([
@@ -200,7 +204,7 @@ export function SessionForm({
           ]);
         }}
       >
-        补录小憩
+        补记一次小憩
       </button>
       {error && (
         <p className="error" role="alert">
@@ -212,7 +216,7 @@ export function SessionForm({
         disabled={busy}
         onClick={() => void save()}
       >
-        {busy ? "正在保存…" : "保存佩戴时段"}
+        {busy ? "正在保存…" : "记下这段"}
       </button>
       {session && onDelete && (
         <button
@@ -220,7 +224,7 @@ export function SessionForm({
           disabled={busy}
           onClick={() => onDelete(session)}
         >
-          删除这个佩戴时段
+          删掉这个时段
         </button>
       )}
     </fieldset>

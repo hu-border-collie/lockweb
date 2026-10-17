@@ -1,0 +1,818 @@
+/* ==========================================================================
+   私记 · 纸本手记 —— 记录页
+   记录表单（EntryForm）、时段表单（SessionForm）、隐私打码（PrivacyBrush）、
+   时段行（session-row）、照片对比（compare-*）。
+   只消费 tokens.css 的设计变量；不在这里定义 :root。
+   ========================================================================== */
+
+/* ==========================================================================
+   1. 记录表单 EntryForm
+   ========================================================================== */
+
+.entry-form {
+  display: block;
+  min-width: 0;
+}
+
+/* ---------- 拍照区：虚线纸框 + 细线相机 ---------- */
+
+.capture-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 26px 18px 22px;
+  border: 1px dashed var(--rule-strong);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--paper) 42%, transparent);
+  text-align: center;
+}
+
+.camera-symbol {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 2px;
+  color: var(--ink-soft);
+}
+
+.camera-symbol svg {
+  width: 56px;
+  height: 56px;
+  stroke-width: 1;
+}
+
+.capture-copy h3 {
+  margin-top: 10px;
+  color: var(--ink);
+  font-size: 22px;
+  letter-spacing: 0.08em;
+}
+
+.capture-copy p {
+  margin-top: 7px;
+  color: var(--ink-faint);
+  font-size: var(--fs-caption);
+  letter-spacing: 0.08em;
+  line-height: 1.8;
+}
+
+.capture-buttons {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 308px;
+  margin-top: 20px;
+}
+
+.capture-buttons .primary,
+.capture-buttons .secondary {
+  flex: 1;
+  min-height: 48px;
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+
+.capture-buttons svg {
+  opacity: 0.9;
+}
+
+/* ---------- 照片网格：贴进本子的相片 ---------- */
+
+.entry-photos {
+  margin-top: 24px;
+}
+
+.entry-photos .section-line {
+  margin-top: 0;
+  margin-bottom: 14px;
+}
+
+.draft-photos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 10px;
+}
+
+.draft-photo {
+  position: relative;
+  min-width: 0;
+}
+
+.draft-photos .photo-thumb {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  flex: none;
+  border-radius: var(--radius-sm);
+}
+
+.draft-photo .photo-edit {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  display: inline-flex;
+  align-items: flex-end;
+  width: auto;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 0 4px 4px;
+  background: none;
+  color: var(--paper-raised);
+}
+
+.draft-photo .photo-edit > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--ink) 84%, transparent);
+  color: var(--paper-raised);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  backdrop-filter: blur(3px);
+}
+
+.draft-photo .photo-edit:hover > span {
+  background: var(--ink);
+}
+
+.draft-photo .photo-edit:focus-visible {
+  outline: none;
+}
+
+.draft-photo .photo-edit:focus-visible > span {
+  outline: 2px solid var(--seal);
+  outline-offset: 2px;
+}
+
+.draft-photo .remove-photo {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  color: var(--paper-raised);
+}
+
+.draft-photo .remove-photo::before {
+  content: "";
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--paper-raised);
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--ink) 45%, transparent);
+}
+
+.draft-photo .remove-photo svg {
+  position: relative;
+  z-index: 1;
+}
+
+.draft-photo .remove-photo:focus-visible {
+  outline: none;
+}
+
+.draft-photo .remove-photo:focus-visible::before {
+  outline: 2px solid var(--seal);
+  outline-offset: 2px;
+}
+
+/* ---------- 表单字段：小字标签 + 纸凹输入 ---------- */
+
+.entry-form > .field {
+  margin: 16px 0;
+}
+
+.entry-form > .field:first-of-type {
+  margin-top: 22px;
+}
+
+.entry-form .field small {
+  margin-top: 1px;
+  letter-spacing: 0.02em;
+}
+
+/* ---------- 常用标签：纸页上的小印章 ---------- */
+
+.fast-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 2px 0 16px;
+}
+
+.fast-tags button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+  transition: color 0.16s ease, background-color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.fast-tags button:hover {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+
+.fast-tags button[aria-pressed="true"] {
+  border-color: var(--seal);
+  background: var(--seal-soft);
+  color: var(--seal-deep);
+  font-weight: 600;
+}
+
+/* ---------- “再写两句”：一条细线折页 ---------- */
+
+.details-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  margin: 22px 0 0;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  background: none;
+  color: var(--ink-soft);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-align: left;
+}
+
+.details-toggle > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.details-toggle small {
+  color: var(--ink-faint);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.details-toggle svg {
+  flex: none;
+  color: var(--ink-faint);
+  transition: transform 0.2s ease, color 0.16s ease;
+}
+
+.details-toggle:hover {
+  color: var(--seal);
+}
+
+.details-toggle:hover svg {
+  color: var(--seal);
+}
+
+.details-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+/* ---------- 展开的备注 / 标签 / 佩戴状态 / 舒适度 ---------- */
+
+.entry-form .details {
+  padding-bottom: 2px;
+}
+
+.entry-form .details > .field {
+  margin: 14px 0;
+}
+
+.entry-form .details > .field:first-child {
+  margin-top: 12px;
+}
+
+.comfort-options {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.comfort-options button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-xs);
+  background: var(--paper-sunken);
+  color: var(--ink-soft);
+  font-family: var(--serif);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.16s ease, background-color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.comfort-options button:hover {
+  border-color: var(--seal);
+  color: var(--seal);
+}
+
+.comfort-options button.selected,
+.comfort-options .selected {
+  border-color: var(--seal);
+  background: var(--seal);
+  color: var(--paper-raised);
+  font-weight: 600;
+}
+
+/* ---------- 状态、提交与底部操作 ---------- */
+
+.entry-form .entry-busy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  color: var(--ink-faint);
+  font-size: var(--fs-caption);
+  letter-spacing: 0.08em;
+}
+
+.entry-form .entry-busy::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--seal);
+  animation: record-busy-breath 1.6s ease-in-out infinite;
+}
+
+@keyframes record-busy-breath {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.entry-form > .primary.wide {
+  display: flex;
+  margin-top: 24px;
+  letter-spacing: 0.12em;
+}
+
+.privacy-caption {
+  margin: 12px 0 0;
+  color: var(--ink-faint);
+  font-size: 10.5px;
+  line-height: 1.8;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.entry-form > .danger-text.wide {
+  display: flex;
+  min-height: 44px;
+  margin-top: 14px;
+}
+
+.entry-form > .text-button.wide {
+  display: flex;
+  min-height: 44px;
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   2. 时段表单 SessionForm
+   ========================================================================== */
+
+.session-form {
+  display: block;
+  min-width: 0;
+}
+
+.session-form > .session-intro {
+  margin: 2px 0 4px;
+  font-size: var(--fs-caption);
+  letter-spacing: 0.02em;
+}
+
+.session-form > .field {
+  margin: 16px 0;
+}
+
+.session-form > .checkbox {
+  margin: 2px 0 10px;
+}
+
+.session-form > .section-line.session-breaks-heading {
+  margin: 26px 0 8px;
+}
+
+.session-form > .break-hint {
+  margin: 0 0 12px;
+  font-size: var(--fs-caption);
+  letter-spacing: 0.02em;
+}
+
+.break-block {
+  margin: 0 0 16px;
+  padding: 4px 14px 10px;
+  border-left: 2px solid var(--rule-strong);
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  background: color-mix(in srgb, var(--paper-sunken) 45%, transparent);
+}
+
+.break-block .field {
+  margin: 12px 0;
+}
+
+.break-block .field:first-child {
+  margin-top: 12px;
+}
+
+.break-block .checkbox {
+  margin: 4px 0 8px;
+}
+
+.break-block .break-remove {
+  min-height: 44px;
+  margin: 2px 0 0;
+}
+
+.session-form > .break-add {
+  margin: 4px 0 2px;
+}
+
+.session-form > .primary.wide {
+  display: flex;
+  margin-top: 22px;
+  letter-spacing: 0.12em;
+}
+
+.session-form > .danger-text.wide {
+  display: flex;
+  min-height: 44px;
+  margin-top: 14px;
+}
+
+/* ---------- 时段行（管理弹层里的一页时段） ---------- */
+
+.session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-height: 44px;
+  padding: 14px 0;
+  border-top: 1px solid var(--rule);
+  background: none;
+  color: var(--ink);
+  text-align: left;
+}
+
+.session-row > span {
+  min-width: 0;
+}
+
+.session-row strong {
+  display: block;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.16s ease;
+}
+
+.session-row small {
+  display: block;
+  margin-top: 3px;
+  color: var(--ink-faint);
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+
+.session-row > span:last-child {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-faint);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.session-row svg {
+  color: var(--ink-faint);
+  opacity: 0.8;
+  transition: color 0.16s ease, transform 0.16s ease;
+}
+
+.session-row:hover strong,
+.session-row:hover > span:last-child,
+.session-row:hover svg {
+  color: var(--seal);
+}
+
+.session-row:hover svg {
+  transform: translateX(2px);
+}
+
+/* ==========================================================================
+   3. 隐私打码 PrivacyBrush
+   ========================================================================== */
+
+.brush-intro {
+  margin: 0 0 14px;
+}
+
+.brush-modes {
+  margin-top: 4px;
+}
+
+.brush-width {
+  margin: 6px 0 14px;
+}
+
+.field input[type="range"] {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  accent-color: var(--seal);
+}
+
+.brush-stage {
+  margin: 0 0 16px;
+  padding: 6px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--paper-raised);
+  box-shadow: var(--shadow);
+}
+
+.brush-canvas {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 46dvh;
+  margin: 0 auto;
+  border-radius: 1px;
+  background: var(--paper-sunken);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.brush-actions {
+  margin: 0 0 16px;
+}
+
+.brush-actions > .secondary {
+  flex: 1;
+  justify-content: center;
+}
+
+/* ---------- 一行两个操作（打码撤销 / 模板行等） ---------- */
+
+.option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.option-row > button:first-child {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.option-row > button:last-child {
+  flex: none;
+}
+
+/* ==========================================================================
+   4. 照片对比 ComparePhotos
+   ========================================================================== */
+
+.compare-picks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 10px;
+  margin: 16px 0;
+}
+
+.compare-picks label {
+  position: relative;
+  display: block;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.compare-picks .photo-thumb {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  flex: none;
+  border-radius: var(--radius-sm);
+}
+
+.compare-picks label > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.compare-picks input[type="checkbox"] {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--seal);
+}
+
+.compare-picks label:has(input:checked) .photo-thumb {
+  outline: 2px solid var(--seal);
+  outline-offset: 2px;
+}
+
+.compare-picks label:has(input:checked) > span {
+  color: var(--seal);
+  font-weight: 600;
+}
+
+.compare-side {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.compare-stage {
+  position: relative;
+  width: 100%;
+  height: 260px;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--paper-sunken);
+  touch-action: none;
+}
+
+.compare-side .compare-stage {
+  height: 220px;
+}
+
+.compare-stage img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: contain;
+  user-select: none;
+}
+
+.compare-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--paper-sunken);
+  pointer-events: none;
+}
+
+.compare-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: ew-resize;
+  touch-action: none;
+  transform: translateX(-50%);
+}
+
+.compare-divider::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--paper-raised);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 35%, transparent);
+}
+
+.compare-divider span {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 50%;
+  background: var(--paper-raised);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  font-size: 15px;
+}
+
+/* ==========================================================================
+   5. 桌面（≥650px）与窄屏（≤360px）
+   ========================================================================== */
+
+@media (min-width: 650px) {
+  .capture-zone {
+    padding: 34px 26px 30px;
+  }
+
+  .capture-copy h3 {
+    font-size: 24px;
+  }
+
+  .capture-buttons {
+    max-width: 340px;
+  }
+
+  .draft-photos {
+    gap: 16px 12px;
+  }
+
+  .break-block {
+    padding: 8px 18px 12px;
+  }
+
+  .compare-stage {
+    height: 340px;
+  }
+
+  .compare-side .compare-stage {
+    height: 280px;
+  }
+}
+
+@media (max-width: 360px) {
+  .capture-zone {
+    padding: 22px 12px 18px;
+  }
+
+  .capture-buttons {
+    gap: 8px;
+  }
+
+  .draft-photos {
+    gap: 12px 8px;
+  }
+
+  .comfort-options {
+    gap: 5px;
+  }
+
+  .compare-picks {
+    gap: 12px 8px;
+  }
+
+  .compare-side {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-side .compare-stage {
+    height: 220px;
+  }
+}

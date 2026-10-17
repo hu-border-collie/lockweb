@@ -1,6 +1,6 @@
 import { unlockVault } from "../lib/crypto";
 import { beginSystemDialog, endSystemDialog } from "../lib/privacy";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ShieldCheck,
   Download,
@@ -11,6 +11,8 @@ import {
   Trash2,
   Info,
   RefreshCw,
+  ChevronRight,
+  Smartphone,
 } from "lucide-react";
 import type { Vault } from "../lib/db";
 import { userError } from "../lib/db";
@@ -20,6 +22,42 @@ import { JournalOptions } from "./JournalOptions";
 import { BiometricSettings } from "./BiometricSettings";
 import type { JournalSettings } from "../lib/models";
 export type Theme = "system" | "light" | "dark";
+
+const PANEL_TITLES: Record<string, string> = {
+  export: "导出加密备份",
+  import: "从备份恢复",
+  password: "更换密码",
+  clear: "清空手记",
+};
+
+function SettingRow({
+  icon,
+  title,
+  hint,
+  onClick,
+}: {
+  icon: ReactNode;
+  title: string;
+  hint: string;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" onClick={onClick}>
+      {icon}
+      <span>
+        <span className="setting-title">{title}</span>
+        <small>{hint}</small>
+      </span>
+      <ChevronRight
+        className="settings-arrow"
+        size={16}
+        strokeWidth={1.5}
+        aria-hidden="true"
+      />
+    </button>
+  );
+}
+
 export function Settings({
   vault,
   revision,
@@ -110,10 +148,13 @@ export function Settings({
     if (navigator.canShare?.({ files: [backup.file] })) {
       beginSystemDialog();
       try {
-        await navigator.share({ files: [backup.file], title: "私记加密备份" });
+        await navigator.share({
+          files: [backup.file],
+          title: "私记 · 加密备份",
+        });
       } catch (e) {
         if ((e as Error).name !== "AbortError")
-          setError("系统分享失败，可使用下面的下载链接。");
+          setError("系统分享没能打开，可以用下面的下载链接。");
       } finally {
         endSystemDialog();
       }
@@ -127,49 +168,66 @@ export function Settings({
   }
   const bytes = (n?: number) =>
     n === undefined ? "系统未提供" : `${(n / 1024 / 1024).toFixed(1)} MB`;
-  return (
+  const feedback = (
     <>
-      <div className="card privacy-card">
-        <div className="privacy-emblem">
-          <ShieldCheck size={24} />
+      {busy && (
+        <p className="muted" role="status">
+          {busy}
+        </p>
+      )}
+      {message && (
+        <p className="success" role="status">
+          {message}
+        </p>
+      )}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+    </>
+  );
+  return (
+    <div className="settings-page">
+      <section className="card privacy-card">
+        <div className="privacy-emblem" aria-hidden="true">
+          <ShieldCheck size={22} strokeWidth={1.5} />
         </div>
-        <div>
+        <div className="privacy-copy">
           <h2>只属于你</h2>
           <p>
-            记录和照片在本机加密保存。
-            <br />
-            没有账号、上传、广告或追踪。
+            记录和照片都锁在这台设备里。没有账号，没有上传，没有广告，也没有人跟踪你。
           </p>
         </div>
-      </div>
-      <h3 className="group-label">隐私与备份</h3>
+      </section>
+      <h3 className="group-label">守护这份手记</h3>
       <div className="card settings-list">
-        <button onClick={() => lock()}>
-          <Lock />
-          <span>
-            立即锁定<small>后台超过 1 分钟自动锁定</small>
-          </span>
-        </button>
-        <button onClick={() => openPanel("password")}>
-          <ShieldCheck />
-          <span>
-            修改解锁密码<small>密码丢失无法找回，请保存好备份</small>
-          </span>
-        </button>
-        <button onClick={() => openPanel("export")}>
-          <Download />
-          <span>
-            导出加密备份<small>包含全部照片、缩略图和记录</small>
-          </span>
-        </button>
-        <button onClick={() => openPanel("import")}>
-          <Upload />
-          <span>
-            从备份恢复<small>先验证，再确认覆盖现有记录</small>
-          </span>
-        </button>
+        <SettingRow
+          icon={<Lock size={18} strokeWidth={1.5} aria-hidden="true" />}
+          title="现在合上"
+          hint="切到后台超过 1 分钟会自动合上"
+          onClick={() => lock()}
+        />
+        <SettingRow
+          icon={<ShieldCheck size={18} strokeWidth={1.5} aria-hidden="true" />}
+          title="更换密码"
+          hint="密码丢了找不回来，记得备份"
+          onClick={() => openPanel("password")}
+        />
+        <SettingRow
+          icon={<Download size={18} strokeWidth={1.5} aria-hidden="true" />}
+          title="导出一份加密备份"
+          hint="照片、缩略图和记录都在里面"
+          onClick={() => openPanel("export")}
+        />
+        <SettingRow
+          icon={<Upload size={18} strokeWidth={1.5} aria-hidden="true" />}
+          title="用备份恢复"
+          hint="先检查，再覆盖现在的记录"
+          onClick={() => openPanel("import")}
+        />
       </div>
-      <h3 className="group-label">设备与外观</h3>
+      <h3 className="group-label">这台设备</h3>
       <BiometricSettings vault={vault} revision={revision} refresh={refresh} />
       <JournalOptions
         vault={vault}
@@ -177,9 +235,9 @@ export function Settings({
         revision={revision}
         refresh={refresh}
       />
-      <div className="card">
+      <div className="card appearance-card">
         <label className="setting-label">
-          <SunMoon size={20} />
+          <SunMoon size={18} strokeWidth={1.5} aria-hidden="true" />
           <span>外观</span>
           <select
             aria-label="外观"
@@ -192,16 +250,21 @@ export function Settings({
           </select>
         </label>
         <div className="storage-info">
-          <div>
-            <HardDrive size={20} />
-            <strong>本地存储</strong>
+          <div className="setting-label">
+            <HardDrive size={18} strokeWidth={1.5} aria-hidden="true" />
+            <span>本机存储</span>
           </div>
-          <p>
+          <p className="storage-usage">
             已使用 {bytes(usage.used)} · 可用配额 {bytes(usage.quota)}
           </p>
-          <p>
-            {usage.persistent ? "系统已允许持久存储" : "尚未获得持久存储保障"}
-          </p>
+          <div className="data-row storage-row">
+            <span>长期保留</span>
+            <strong>
+              {usage.persistent
+                ? "系统已经答应长期保留"
+                : "还没拿到长期保留的保障"}
+            </strong>
+          </div>
           <button
             className="secondary"
             onClick={() =>
@@ -210,51 +273,52 @@ export function Settings({
                 await estimate();
                 setMessage(
                   allowed
-                    ? "持久存储已允许，仍请定期备份。"
-                    : "系统未允许或不支持持久存储，请定期备份。",
+                    ? "已经拿到长期保留，仍请定期备份。"
+                    : "系统没有答应，或不支持长期保留，请定期备份。",
                 );
               })
             }
           >
-            申请持久存储
+            申请长期保留
           </button>
         </div>
       </div>
-      <div className="card install-card">
-        <h2>
-          <Info size={20} />
-          安装与离线
-        </h2>
-        <p>
-          在 iPhone Safari 中打开此页面，点“分享” →
-          “添加到主屏幕”。首次联网等待资源缓存完成，再尝试断网。
+      <section className="card install-card">
+        <div className="install-head">
+          <span className="install-mark" aria-hidden="true">
+            <Smartphone size={20} strokeWidth={1.5} />
+          </span>
+          <h2>装到主屏幕</h2>
+        </div>
+        <p className="install-guide">
+          在 iPhone 的 Safari 里打开这一页，点「分享」→「添加到主屏幕」。第一次联网时等缓存完成，就可以断网使用。
         </p>
         <div className={`status-pill ${offlineReady ? "ready" : ""}`}>
-          {offlineReady ? "应用资源已缓存，可离线使用" : "等待离线缓存完成"}
+          {offlineReady ? "应用已缓存，可以离线使用" : "正在缓存…"}
         </div>
-        <p>
-          安装后请从主屏幕持续使用。同一设备的浏览器与主屏幕应用可能使用不同存储；换网址、换浏览器或清理网站数据不会自动迁移记录。
+        <p className="install-note">
+          装好后请一直从主屏幕打开。同一台设备上，浏览器和主屏幕应用可能是两套存储；换网址、换浏览器或清理网站数据都不会带走记录。
         </p>
         {needRefresh && (
           <button className="secondary" onClick={onUpdate}>
-            <RefreshCw size={16} />
+            <RefreshCw size={16} strokeWidth={1.5} aria-hidden="true" />
             更新应用
           </button>
         )}
-      </div>
+      </section>
       <div className="storage-warning">
-        <Info size={18} />
+        <Info size={18} strokeWidth={1.5} aria-hidden="true" />
         <p>
-          浏览器存储可能被系统清理，不能代替备份。建议每周导出一次，并确认备份文件已保存到“文件”App。普通备份不能找回备份之后的记录。
+          浏览器数据可能被系统清理，不能代替备份。最好每周导出一次，并确认文件已经存进「文件」App。备份之后的记录，要再导一次。
         </p>
       </div>
       <div className="card settings-list danger">
-        <button onClick={() => openPanel("clear")}>
-          <Trash2 />
-          <span>
-            清空所有记录与照片<small>保留当前密码和应用设置</small>
-          </span>
-        </button>
+        <SettingRow
+          icon={<Trash2 size={18} strokeWidth={1.5} aria-hidden="true" />}
+          title="清空这本手记"
+          hint="密码和设置会保留"
+          onClick={() => openPanel("clear")}
+        />
       </div>
       {message && !panel && (
         <p className="success" role="status">
@@ -268,50 +332,44 @@ export function Settings({
       )}
       {panel && (
         <Modal
-          title={
-            {
-              export: "加密备份",
-              import: "恢复备份",
-              password: "修改密码",
-              clear: "清空数据",
-            }[panel] ?? ""
-          }
+          title={PANEL_TITLES[panel] ?? ""}
           onClose={() => {
             if (!busy) setPanel("");
           }}
         >
-          <fieldset className="form-stack" disabled={!!busy}>
+          <fieldset className="settings-sheet-form" disabled={!!busy}>
             {panel === "export" && (
               <>
-                <p className="muted">
-                  为此备份设置独立密码（至少 8
-                  个字符）。任何设备恢复都需要这个密码。
+                <p className="settings-note">
+                  给这份备份单独设一个密码，至少 8 个字符。在任何设备上恢复都要用它。
                 </p>
-                <label className="field">
-                  备份密码
-                  <input
-                    type="password"
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </label>
-                <label className="field">
-                  再次输入备份密码
-                  <input
-                    type="password"
-                    autoComplete="new-password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                </label>
+                <div className="settings-fields">
+                  <label className="field">
+                    备份密码
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    再次输入备份密码
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                  </label>
+                </div>
                 <button
                   className="primary wide"
                   disabled={!!busy}
                   onClick={() =>
                     void run("正在生成备份…", async () => {
                       if (password !== confirmPassword)
-                        throw new Error("两次输入的备份密码不同");
+                        throw new Error("两次输入的备份密码不一样。");
                       const blob = await exportBackup(vault, password);
                       const f = new File(
                         [blob],
@@ -321,14 +379,17 @@ export function Settings({
                       setBackup({ file: f, url: URL.createObjectURL(blob) });
                       setPassword("");
                       setConfirmPassword("");
-                      setMessage("备份已生成，请点下方按钮保存到“文件”App。");
+                      setMessage(
+                        "备份已经打包好，点下面保存到「文件」App。",
+                      );
                     })
                   }
                 >
-                  生成加密备份
+                  开始打包
                 </button>
+                {feedback}
                 {backup && (
-                  <>
+                  <div className="settings-block">
                     <button
                       className="secondary wide"
                       onClick={() => void saveBackup()}
@@ -342,14 +403,14 @@ export function Settings({
                     >
                       直接下载 {backup.file.name}
                     </a>
-                  </>
+                  </div>
                 )}
               </>
             )}
             {panel === "import" && (
               <>
-                <p className="muted">
-                  恢复会覆盖当前记录。验证失败不会更改本地数据。建议先导出现有备份。
+                <p className="settings-note">
+                  恢复会覆盖现在的记录。检查不通过不会动本地数据，建议先导出一份现有的备份。
                 </p>
                 <input
                   ref={importRef}
@@ -389,27 +450,29 @@ export function Settings({
                   className="primary wide"
                   disabled={!!busy || !file}
                   onClick={() =>
-                    void run("正在验证备份…", async () => {
-                      if (!file) throw new Error("请选择备份");
+                    void run("正在检查备份…", async () => {
+                      if (!file) throw new Error("先选一个备份文件");
                       setParsedRevision(revision);
                       setParsed(await importBackup(file, password));
                     })
                   }
                 >
-                  验证备份
+                  检查备份
                 </button>
+                {feedback}
                 {parsed && (
                   <div className="restore-preview">
-                    <h3>备份验证通过</h3>
+                    <h3>备份检查通过</h3>
                     <p>
-                      {parsed.entries.length} 次打卡 · {parsed.photos.length}{" "}
-                      张照片 · {parsed.sessions.length} 个佩戴时段 · {parsed.fate.draws.length} 次轮盘判定
+                      {parsed.entries.length} 次记录 · {parsed.photos.length}{" "}
+                      张照片 · {parsed.sessions.length} 个时段 ·{" "}
+                      {parsed.fate.draws.length} 次轮盘判定
                     </p>
                     <button
                       className="primary wide"
                       disabled={!!busy}
                       onClick={() =>
-                        void run("正在加密恢复…", async () => {
+                        void run("正在恢复…", async () => {
                           await vault.replace(
                             parsed.entries,
                             parsed.sessions,
@@ -422,11 +485,11 @@ export function Settings({
                           setParsed(null);
                           setFile(null);
                           setPassword("");
-                          setMessage("记录与照片已完整恢复。");
+                          setMessage("记录和照片已经完整恢复。");
                         })
                       }
                     >
-                      确认覆盖恢复
+                      覆盖并恢复
                     </button>
                   </div>
                 )}
@@ -434,40 +497,42 @@ export function Settings({
             )}
             {panel === "password" && (
               <>
-                <label className="field">
-                  当前密码
-                  <input
-                    type="password"
-                    autoComplete="current-password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                  />
-                </label>
-                <label className="field">
-                  新密码
-                  <input
-                    type="password"
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </label>
-                <label className="field">
-                  再次输入新密码
-                  <input
-                    type="password"
-                    autoComplete="new-password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                </label>
+                <div className="settings-fields">
+                  <label className="field">
+                    当前密码
+                    <input
+                      type="password"
+                      autoComplete="current-password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    新密码
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    再次输入新密码
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                  </label>
+                </div>
                 <button
                   className="primary wide"
                   disabled={!!busy}
                   onClick={() =>
                     void run("正在修改密码…", async () => {
                       if (password !== confirmPassword)
-                        throw new Error("两次新密码不同");
+                        throw new Error("两次新密码不一样。");
 
                       await unlockVault(vault.config, currentPassword);
                       await vault.changePassword(password, revision);
@@ -475,21 +540,22 @@ export function Settings({
                       setPassword("");
                       setCurrentPassword("");
                       setConfirmPassword("");
-                      setMessage("密码已修改，下次解锁请使用新密码。");
+                      setMessage("密码已经换好，下次请用新密码。");
                     })
                   }
                 >
                   保存新密码
                 </button>
+                {feedback}
               </>
             )}
             {panel === "clear" && (
               <>
-                <p>
-                  这会删除全部打卡、照片和佩戴时段，无法撤销。密码会保留。请先保存备份。
+                <p className="settings-warning-text">
+                  会删掉全部记录、照片和时段，无法撤销。密码会保留。请先保存一份备份。
                 </p>
                 <label className="field">
-                  请输入“清空”确认
+                  输入「清空」确认
                   <input
                     value={confirmation}
                     onChange={(e) => setConfirmation(e.target.value)}
@@ -503,33 +569,19 @@ export function Settings({
                     void run("正在清空…", async () => {
                       await vault.clear(revision);
                       await refresh();
-                      setMessage("全部记录与照片已清空。");
+                      setMessage("这本手记已经清空。");
                       setConfirmation("");
                     })
                   }
                 >
-                  确认清空数据
+                  确认清空
                 </button>
+                {feedback}
               </>
-            )}
-            {busy && (
-              <p className="muted" role="status">
-                {busy}
-              </p>
-            )}
-            {message && (
-              <p className="success" role="status">
-                {message}
-              </p>
-            )}
-            {error && (
-              <p className="error" role="alert">
-                {error}
-              </p>
             )}
           </fieldset>
         </Modal>
       )}
-    </>
+    </div>
   );
 }

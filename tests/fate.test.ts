@@ -53,11 +53,11 @@ describe("durable encrypted fate", () => {
         expect(sectors.at(-1)!.end).toBe(360);
     });
     it("requires a new photo check-in today, not yesterday or a retimed old entry", async () => {
-        await expect(vault.drawFate(0)).rejects.toThrow("先完成");
+        await expect(vault.drawFate(0)).rejects.toThrow("今天先拍一张");
         await vault.saveEntry(entry({ createdAt: now - 86400000 }), [photo()], 0);
-        await expect(vault.drawFate(1)).rejects.toThrow("先完成");
+        await expect(vault.drawFate(1)).rejects.toThrow("今天先拍一张");
         await vault.saveEntry(entry({ timestamp: now - 86400000 }), [], 1);
-        await expect(vault.drawFate(2)).rejects.toThrow("先完成");
+        await expect(vault.drawFate(2)).rejects.toThrow("今天先拍一张");
         expect((await vault.snapshot()).fate.draws).toHaveLength(0);
     });
     it("persists a result before returning, encrypts every label/date and survives reopen/deletion", async () => {
@@ -73,7 +73,7 @@ describe("durable encrypted fate", () => {
         const reopened = new Vault(vault.key, vault.config, database);
         expect((await reopened.snapshot()).fate.draws).toEqual([draw]);
         await reopened.deleteEntry(entry(), 2);
-        await expect(reopened.drawFate(3)).rejects.toThrow("今日仪式已完成");
+        await expect(reopened.drawFate(3)).rejects.toThrow("今天的仪式已经做过了");
     });
     it("allows only one concurrent commit across two vault clients", async () => {
         await vault.saveEntry(entry(), [photo()], 0);
@@ -100,7 +100,7 @@ describe("durable encrypted fate", () => {
         const sandbox = await vault.drawFate(3);
         expect(sandbox.mode).toBe("free");
         await vault.saveFateConfig(fatePreset(true), 4);
-        await expect(vault.drawFate(5)).rejects.toThrow("今日仪式已完成");
+        await expect(vault.drawFate(5)).rejects.toThrow("今天的仪式已经做过了");
         expect((await vault.snapshot()).fate.draws[0]).toEqual(original);
     });
     it("unlocks a fresh local date but still requires that day's new check-in", async () => {
@@ -108,7 +108,7 @@ describe("durable encrypted fate", () => {
         await vault.drawFate(1);
         now = new Date(2026, 9, 14, 0, 1).getTime();
         vi.mocked(Date.now).mockReturnValue(now);
-        await expect(vault.drawFate(2)).rejects.toThrow("先完成");
+        await expect(vault.drawFate(2)).rejects.toThrow("今天先拍一张");
         await vault.saveEntry(entry({ id: "next", photoIds: ["next-p"] }), [{ ...photo(), id: "next-p" }], 2);
         await vault.drawFate(3);
         expect((await vault.snapshot()).fate.draws.map((d) => d.day)).toEqual(["2026-10-13", "2026-10-14"]);
@@ -148,7 +148,7 @@ describe("durable encrypted fate", () => {
         expect((await vault.snapshot()).fate.draws).toHaveLength(0);
         await vault.replace(parsed.entries, parsed.sessions, parsed.photos, 3, parsed.settings, parsed.fate);
         expect((await vault.snapshot()).fate).toEqual(expected);
-        await expect(vault.drawFate(4)).rejects.toThrow("今日仪式已完成");
+        await expect(vault.drawFate(4)).rejects.toThrow("今天的仪式已经做过了");
     });
     it("reads historical v3 backups with default fate instead of dropping unknown new data", async () => {
         const enc = new TextEncoder(), salt = crypto.getRandomValues(new Uint8Array(16)), id = crypto.randomUUID();

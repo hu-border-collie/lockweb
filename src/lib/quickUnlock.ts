@@ -316,7 +316,7 @@ export async function createQuickCredential(
           user: {
             id: crypto.getRandomValues(new Uint8Array(32)),
             name: `private-log-${grant.config.id.slice(0, 8)}`,
-            displayName: "私记本地空间",
+            displayName: "私记 · 一册自己的手记",
           },
           pubKeyCredParams: [{ type: "public-key", alg: -7 }],
           authenticatorSelection: {

@@ -2,7 +2,14 @@ import sharp from "sharp";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 mkdirSync("public/icons", { recursive: true });
 mkdirSync("public/splash", { recursive: true });
-const icon = `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg"><rect width="512" height="512" rx="112" fill="#5268d9"/><rect x="138" y="224" width="236" height="166" rx="44" fill="none" stroke="#ffffff" stroke-width="22"/><path d="M184 224v-60a72 72 0 0 1 144 0v60" fill="none" stroke="#ffffff" stroke-width="22"/><circle cx="256" cy="294" r="17" fill="#ffffff"/><path d="M256 303v31" stroke="#ffffff" stroke-width="16" stroke-linecap="round"/></svg>`;
+// 纸本手记图标：暖纸底 + 朱砂印章 + 宋体「私」。
+const sealFont = `"Songti SC","STSong","SimSun","Microsoft YaHei",serif`;
+const icon = `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+<rect width="512" height="512" fill="#f4efe6"/>
+<rect x="86" y="86" width="340" height="340" rx="58" fill="#a83a28"/>
+<rect x="106" y="106" width="300" height="300" rx="42" fill="none" stroke="#fdf6ec" stroke-width="5" opacity="0.35"/>
+<text x="256" y="262" text-anchor="middle" dominant-baseline="central" fill="#fdf6ec" font-family='${sealFont}' font-size="212" font-weight="600">私</text>
+</svg>`;
 for (const [name, size] of [
   ["icon-192", 192],
   ["icon-512", 512],
@@ -35,7 +42,15 @@ for (const [w, h, r] of devices) {
   for (const landscape of [false, true]) {
     const pw = (landscape ? h : w) * r,
       ph = (landscape ? w : h) * r;
-    const svg = `<svg width="${pw}" height="${ph}" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f6f7f9"/><rect x="${pw / 2 - 45 * r}" y="${ph / 2 - 85 * r}" width="${90 * r}" height="${90 * r}" rx="${25 * r}" fill="#5268d9"/><text x="${pw / 2}" y="${ph / 2 + 55 * r}" text-anchor="middle" fill="#202b3e" font-family="sans-serif" font-size="${14 * r}">PRIVATE JOURNAL</text></svg>`;
+    const seal = 92 * r;
+    const svg = `<svg width="${pw}" height="${ph}" xmlns="http://www.w3.org/2000/svg">
+<rect width="100%" height="100%" fill="#f4efe6"/>
+<rect x="${pw / 2 - seal / 2}" y="${ph / 2 - seal / 2 - 34 * r}" width="${seal}" height="${seal}" rx="${18 * r}" fill="#a83a28"/>
+<rect x="${pw / 2 - seal / 2 + 6 * r}" y="${ph / 2 - seal / 2 - 34 * r + 6 * r}" width="${seal - 12 * r}" height="${seal - 12 * r}" rx="${14 * r}" fill="none" stroke="#fdf6ec" stroke-width="${1.4 * r}" opacity="0.35"/>
+<text x="${pw / 2}" y="${ph / 2 - 34 * r + 4 * r}" text-anchor="middle" dominant-baseline="central" fill="#fdf6ec" font-family='${sealFont}' font-size="${52 * r}" font-weight="600">私</text>
+<text x="${pw / 2}" y="${ph / 2 + seal / 2 - 34 * r + 58 * r}" text-anchor="middle" fill="#241f1a" font-family='${sealFont}' font-size="${30 * r}" letter-spacing="${9 * r}">私记</text>
+<text x="${pw / 2}" y="${ph / 2 + seal / 2 - 34 * r + 96 * r}" text-anchor="middle" fill="#7b7161" font-family='"PingFang SC","Microsoft YaHei",sans-serif' font-size="${13 * r}" letter-spacing="${5 * r}">只写给自己</text>
+</svg>`;
     const filename = `splash-${pw}x${ph}.png`;
     await sharp(Buffer.from(svg))
       .png()
