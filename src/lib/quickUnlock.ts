@@ -3,13 +3,16 @@ import { db, getConfig, Vault, type PrivateDB } from "./db";
 import {
   QUICK_UNLOCK_META,
   type QuickUnlockBinding,
+  type QuickUnlockWindowHours,
   type VaultConfig,
 } from "./models";
 import { open, openJSON, seal, sealJSON, unlockVault } from "./crypto";
 import { beginSystemDialog, endSystemDialog } from "./privacy";
 
 const enc = new TextEncoder();
-const WINDOWS = [1, 12, 24];
+const WINDOWS = [0, 1, 12, 24, 168, 720];
+const expiry = (authorizedAt: number, hours: QuickUnlockWindowHours) =>
+  hours === 0 ? null : authorizedAt + hours * 3600000;
 export const LOCK_EVENT = "private-log-lock";
 export const base64url = (bytes: Uint8Array) =>
   btoa(String.fromCharCode(...bytes))
@@ -65,8 +68,12 @@ export function validBinding(value: unknown): value is QuickUnlockBinding {
     WINDOWS.includes(b.windowHours) &&
     Number.isSafeInteger(b.authorizedAt) &&
     b.authorizedAt >= 0 &&
-    b.expiresAt === b.authorizedAt + b.windowHours * 3600000 &&
-    b.expiresAt <= 8640000000000000 &&
+    b.authorizedAt <= 8640000000000000 &&
+    (b.windowHours === 0
+      ? b.expiresAt === null
+      : typeof b.expiresAt === "number" &&
+        b.expiresAt === expiry(b.authorizedAt, b.windowHours) &&
+        b.expiresAt <= 8640000000000000) &&
     packet(b.wrapped) &&
     b.wrapped.data.length === 48 &&
     packet(b.authorization)
@@ -112,8 +119,7 @@ export function bindingCurrent(
     b.vaultId === config.id &&
     b.origin === origin &&
     b.rpId === rpId &&
-    now >= b.authorizedAt &&
-    now < b.expiresAt
+    (b.expiresAt === null || (now >= b.authorizedAt && now < b.expiresAt))
   );
 }
 export async function readQuickBinding(
@@ -222,7 +228,7 @@ export interface PendingQuickUnlock {
   publicKey: Uint8Array;
   prfInput: Uint8Array;
   hkdfSalt: Uint8Array;
-  windowHours: 1 | 12 | 24;
+  windowHours: QuickUnlockWindowHours;
   origin: string;
   rpId: string;
 }
@@ -267,7 +273,7 @@ function checkGrant(grant: PasswordGrant, signal?: AbortSignal) {
 export function reuseQuickCredential(
   grant: PasswordGrant,
   binding: QuickUnlockBinding,
-  windowHours: 1 | 12 | 24,
+  windowHours: QuickUnlockWindowHours,
 ): PendingQuickUnlock {
   checkGrant(grant);
   if (
@@ -289,7 +295,7 @@ export function reuseQuickCredential(
 }
 export async function createQuickCredential(
   grant: PasswordGrant,
-  windowHours: 1 | 12 | 24,
+  windowHours: QuickUnlockWindowHours,
   signal: AbortSignal,
 ): Promise<PendingQuickUnlock> {
   checkGrant(grant, signal);
@@ -505,7 +511,7 @@ export async function finishQuickEnrollment(
   try {
     const wrapped = await seal(key, raw, context(base));
     const authorizedAt = pending.grant.verifiedAt,
-      expiresAt = authorizedAt + base.windowHours * 3600000;
+      expiresAt = expiry(authorizedAt, base.windowHours);
     const authorization = await sealJSON(
       pending.grant.key,
       { authorizedAt, expiresAt },
@@ -546,15 +552,15 @@ async function authenticatedWindow(
   b: QuickUnlockBinding,
   allowExpired = false,
 ) {
-  const stamp = await openJSON<{ authorizedAt: number; expiresAt: number }>(
-    key,
-    b.authorization,
-    `window:${context(b)}`,
-  );
+  const stamp = await openJSON<{
+    authorizedAt: number;
+    expiresAt: number | null;
+  }>(key, b.authorization, `window:${context(b)}`);
   if (
     stamp.authorizedAt !== b.authorizedAt ||
     stamp.expiresAt !== b.expiresAt ||
     (!allowExpired &&
+      stamp.expiresAt !== null &&
       (Date.now() < stamp.authorizedAt || Date.now() >= stamp.expiresAt))
   )
     throw new Error("快速解锁窗口已过期或无效，请输入主密码");
@@ -637,7 +643,7 @@ export async function unlockWithPassword(
         return;
       await Dexie.waitFor(authenticatedWindow(key, b, true));
       const authorizedAt = Date.now(),
-        expiresAt = authorizedAt + b.windowHours * 3600000;
+        expiresAt = expiry(authorizedAt, b.windowHours);
       const authorization = await Dexie.waitFor(
         sealJSON(key, { authorizedAt, expiresAt }, `window:${context(b)}`),
       );

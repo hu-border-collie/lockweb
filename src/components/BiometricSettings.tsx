@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { Vault } from "../lib/db";
-import { QUICK_UNLOCK_META, type QuickUnlockBinding } from "../lib/models";
+import {
+  QUICK_UNLOCK_META,
+  type QuickUnlockBinding,
+  type QuickUnlockWindowHours,
+} from "../lib/models";
 import {
   authorizeQuickEnrollment,
   createQuickCredential,
@@ -31,7 +35,7 @@ export function BiometricSettings({
     [capable, setCapable] = useState<boolean | null>(null);
   const [panel, setPanel] = useState(false),
     [password, setPassword] = useState(""),
-    [hours, setHours] = useState<1 | 12 | 24>(24),
+    [hours, setHours] = useState<QuickUnlockWindowHours>(0),
     [grant, setGrant] = useState<PasswordGrant | null>(null),
     [pending, setPending] = useState<PendingQuickUnlock | null>(null);
   const [busy, setBusy] = useState(false),
@@ -124,7 +128,9 @@ export function BiometricSettings({
           {!loaded
             ? "正在读取本地绑定…"
             : binding
-              ? `已绑定 · 密码验证窗口 ${binding.windowHours} 小时 · ${dateTime(binding.expiresAt)} 到期`
+              ? binding.expiresAt === null
+                ? "已绑定 · 永久有效"
+                : `已绑定 · 有效期 ${binding.windowHours < 24 ? `${binding.windowHours} 小时` : `${binding.windowHours / 24} 天`} · ${dateTime(binding.expiresAt)} 到期`
               : exists
                 ? "本地绑定已失效，可清除或重新启用。"
                 : "尚未启用"}
@@ -144,12 +150,12 @@ export function BiometricSettings({
             setPassword("");
             setGrant(null);
             setPending(null);
-            setHours(binding?.windowHours ?? 24);
+            setHours(binding?.windowHours ?? 0);
             setError("");
             setMessage("");
           }}
         >
-          {binding ? "重新验证或调整窗口" : "启用快速解锁"}
+          {binding ? "重新验证或调整有效期" : "启用快速解锁"}
         </button>
         {exists && (
           <button
@@ -189,21 +195,28 @@ export function BiometricSettings({
         <Modal title="启用快速解锁" onClose={close}>
           <fieldset className="form-stack" disabled={busy}>
             <p className="muted">
-              取消任意一步均不改变现有绑定。每次输入正确主密码会重新开始有效窗口，快速解锁本身不会延长窗口。修改密码、清空或覆盖恢复会撤销本地绑定。
+              默认永久有效，每次解锁仍需系统验证。若选择限时窗口，每次输入正确主密码会重新开始计时，快速解锁本身不会延长窗口。取消任意一步均不改变现有绑定；修改密码、清空或覆盖恢复会撤销本地绑定。
             </p>
             {!grant && (
               <>
                 <label className="field">
-                  快速解锁有效窗口
+                  快速解锁有效期
                   <select
                     value={hours}
                     onChange={(e) =>
-                      setHours(Number(e.target.value) as 1 | 12 | 24)
+                      setHours(Number(e.target.value) as QuickUnlockWindowHours)
                     }
                   >
-                    <option value={1}>1 小时</option>
-                    <option value={12}>12 小时</option>
-                    <option value={24}>24 小时</option>
+                    <option value={0}>永久有效</option>
+                    {binding?.windowHours === 1 && (
+                      <option value={1}>1 小时（原设置）</option>
+                    )}
+                    {binding?.windowHours === 12 && (
+                      <option value={12}>12 小时（原设置）</option>
+                    )}
+                    <option value={24}>1 天</option>
+                    <option value={168}>7 天</option>
+                    <option value={720}>30 天</option>
                   </select>
                 </label>
                 <label className="field">

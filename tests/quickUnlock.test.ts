@@ -1,6 +1,9 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { createVault, PrivateDB, Vault } from "../src/lib/db";
-import { QUICK_UNLOCK_META } from "../src/lib/models";
+import {
+  QUICK_UNLOCK_META,
+  type QuickUnlockWindowHours,
+} from "../src/lib/models";
 import {
   authorizeQuickEnrollment,
   createQuickCredential,
@@ -10,6 +13,7 @@ import {
   readQuickBinding,
   derSignature,
   validBinding,
+  reuseQuickCredential,
 } from "../src/lib/quickUnlock";
 import { exportBackup, importBackup } from "../src/lib/backup";
 import { syntheticAuthenticator } from "./helpers/authenticator";
@@ -34,16 +38,148 @@ afterEach(async () => {
   vi.unstubAllGlobals();
   await database.delete();
 });
-async function enroll() {
+async function enroll(hours: QuickUnlockWindowHours = 24) {
   const grant = await authorizeQuickEnrollment(vault, "local-password");
   const pending = await createQuickCredential(
     grant,
-    24,
+    hours,
     new AbortController().signal,
   );
   return finishQuickEnrollment(vault, pending, new AbortController().signal);
 }
 describe("PRF quick unlock", () => {
+  it.each([1, 12, 24, 168, 720] as const)(
+    "expires finite bindings at exactly %i hours and renews them with the password",
+    async (hours) => {
+      const binding = await enroll(hours);
+      expect(binding.expiresAt).toBe(binding.authorizedAt + hours * 3600000);
+      const clock = vi.spyOn(Date, "now");
+      clock.mockReturnValue(binding.expiresAt! - 1);
+      await unlockWithQuickBinding(
+        vault.config,
+        binding,
+        new AbortController().signal,
+        database,
+      );
+      clock.mockReturnValue(binding.expiresAt!);
+      await expect(
+        unlockWithQuickBinding(
+          vault.config,
+          binding,
+          new AbortController().signal,
+          database,
+        ),
+      ).rejects.toThrow("过期");
+      await unlockWithPassword(
+        vault.config,
+        "local-password",
+        new AbortController().signal,
+        database,
+      );
+      const renewed = (await readQuickBinding(vault.config, database))!;
+      expect(renewed.expiresAt).toBe(binding.expiresAt! + hours * 3600000);
+      await unlockWithQuickBinding(
+        vault.config,
+        renewed,
+        new AbortController().signal,
+        database,
+      );
+    },
+  );
+  it("keeps permanent bindings usable after years, clock changes and password unlock", async () => {
+    const binding = await enroll(0);
+    expect(binding.expiresAt).toBeNull();
+    expect(validBinding(binding)).toBe(true);
+    expect(validBinding({ ...binding, expiresAt: binding.authorizedAt })).toBe(
+      false,
+    );
+    expect(validBinding({ ...binding, windowHours: 24 })).toBe(false);
+    const clock = vi.spyOn(Date, "now");
+    for (const now of [
+      binding.authorizedAt + 10 * 366 * 86400000,
+      binding.authorizedAt - 86400000,
+    ]) {
+      clock.mockReturnValue(now);
+      const result = await unlockWithQuickBinding(
+        vault.config,
+        binding,
+        new AbortController().signal,
+        database,
+      );
+      await result.guard();
+      expect(
+        new Uint8Array(await crypto.subtle.exportKey("raw", result.vault.key)),
+      ).toEqual(
+        new Uint8Array(await crypto.subtle.exportKey("raw", vault.key)),
+      );
+    }
+    await unlockWithPassword(
+      vault.config,
+      "local-password",
+      new AbortController().signal,
+      database,
+    );
+    const renewed = (await readQuickBinding(vault.config, database))!;
+    expect(renewed.expiresAt).toBeNull();
+    expect(renewed.windowHours).toBe(0);
+    expect(renewed.credentialId).toEqual(binding.credentialId);
+    await unlockWithQuickBinding(
+      vault.config,
+      renewed,
+      new AbortController().signal,
+      database,
+    );
+  });
+  it("switches an expired finite binding to permanent with the same credential after password confirmation", async () => {
+    const finite = await enroll();
+    vi.spyOn(Date, "now").mockReturnValue(finite.expiresAt! + 1);
+    const grant = await authorizeQuickEnrollment(vault, "local-password");
+    const permanent = await finishQuickEnrollment(
+      vault,
+      reuseQuickCredential(grant, finite, 0),
+      new AbortController().signal,
+    );
+    expect(permanent.credentialId).toEqual(finite.credentialId);
+    expect(permanent.expiresAt).toBeNull();
+    await unlockWithQuickBinding(
+      vault.config,
+      permanent,
+      new AbortController().signal,
+      database,
+    );
+    const nextGrant = await authorizeQuickEnrollment(vault, "local-password");
+    const limited = await finishQuickEnrollment(
+      vault,
+      reuseQuickCredential(nextGrant, permanent, 1),
+      new AbortController().signal,
+    );
+    expect(limited.expiresAt).toBe(nextGrant.verifiedAt + 3600000);
+  });
+  it("rejects converting finite metadata to permanent without rewrapping or tampering with authenticated permanent metadata", async () => {
+    const finite = await enroll();
+    const forged = { ...finite, windowHours: 0 as const, expiresAt: null };
+    expect(validBinding(forged)).toBe(true);
+    await database.meta.put({ key: QUICK_UNLOCK_META, value: forged });
+    await expect(
+      unlockWithQuickBinding(
+        vault.config,
+        forged,
+        new AbortController().signal,
+        database,
+      ),
+    ).rejects.toThrow();
+    const permanent = await enroll(0);
+    const altered = { ...permanent, authorizedAt: permanent.authorizedAt + 1 };
+    await database.meta.put({ key: QUICK_UNLOCK_META, value: altered });
+    await expect(
+      unlockWithQuickBinding(
+        vault.config,
+        altered,
+        new AbortController().signal,
+        database,
+      ),
+    ).rejects.toThrow("窗口");
+  });
   it("keeps password access on renewal failure and rolls back a failed revocation", async () => {
     const binding = await enroll();
     const failRenew = vi
@@ -127,16 +263,29 @@ describe("PRF quick unlock", () => {
       createQuickCredential(grant, 12, new AbortController().signal),
     ).rejects.toThrow("无法用于快速解锁");
   });
-  it("rejects absent user verification, wrong identity/origin/challenge, bad signatures and incorrect PRF secrets", async () => {
-    const binding = await enroll();
-    for (const flag of [
-      "wrongChallenge",
-      "wrongOrigin",
-      "wrongId",
-      "badSignature",
-      "wrongPrf",
-    ] as const) {
-      auth.controls[flag] = true;
+  it.each([0, 24] as const)(
+    "rejects absent user verification, wrong identity/origin/challenge, bad signatures and incorrect PRF secrets (%i hours)",
+    async (hours) => {
+      const binding = await enroll(hours);
+      for (const flag of [
+        "wrongChallenge",
+        "wrongOrigin",
+        "wrongId",
+        "badSignature",
+        "wrongPrf",
+      ] as const) {
+        auth.controls[flag] = true;
+        await expect(
+          unlockWithQuickBinding(
+            vault.config,
+            binding,
+            new AbortController().signal,
+            database,
+          ),
+        ).rejects.toThrow();
+        auth.controls[flag] = false;
+      }
+      auth.controls.uv = false;
       await expect(
         unlockWithQuickBinding(
           vault.config,
@@ -144,20 +293,10 @@ describe("PRF quick unlock", () => {
           new AbortController().signal,
           database,
         ),
-      ).rejects.toThrow();
-      auth.controls[flag] = false;
-    }
-    auth.controls.uv = false;
-    await expect(
-      unlockWithQuickBinding(
-        vault.config,
-        binding,
-        new AbortController().signal,
-        database,
-      ),
-    ).rejects.toThrow("用户验证");
-    expect(() => derSignature(new Uint8Array([0x30, 0, 1]).buffer)).toThrow();
-  });
+      ).rejects.toThrow("用户验证");
+      expect(() => derSignature(new Uint8Array([0x30, 0, 1]).buffer)).toThrow();
+    },
+  );
   it("enforces an authenticated expiry and renews the window only after entering the password", async () => {
     const binding = await enroll(),
       clock = vi.spyOn(Date, "now");
@@ -168,7 +307,7 @@ describe("PRF quick unlock", () => {
         expiresAt: 9000000000000000 + 24 * 3600000,
       }),
     ).toBe(false);
-    clock.mockReturnValue(binding.expiresAt);
+    clock.mockReturnValue(binding.expiresAt!);
     await expect(
       unlockWithQuickBinding(
         vault.config,
@@ -180,7 +319,7 @@ describe("PRF quick unlock", () => {
     const forged = {
       ...binding,
       authorizedAt: binding.authorizedAt + 3600000,
-      expiresAt: binding.expiresAt + 3600000,
+      expiresAt: binding.expiresAt! + 3600000,
     };
     await database.meta.put({ key: QUICK_UNLOCK_META, value: forged });
     await expect(
@@ -199,7 +338,7 @@ describe("PRF quick unlock", () => {
       database,
     );
     const renewed = (await readQuickBinding(vault.config, database))!;
-    expect(renewed.expiresAt).toBe(binding.expiresAt + 24 * 3600000);
+    expect(renewed.expiresAt).toBe(binding.expiresAt! + 24 * 3600000);
     expect(renewed.id).toBe(binding.id);
     await unlockWithQuickBinding(
       vault.config,
@@ -256,34 +395,37 @@ describe("PRF quick unlock", () => {
       ),
     ).rejects.toThrow("改变");
   });
-  it("rejects stale enrollment and revokes binding atomically on password change, clear and restore", async () => {
-    const grant = await authorizeQuickEnrollment(vault, "local-password"),
-      pending = await createQuickCredential(
-        grant,
-        24,
-        new AbortController().signal,
+  it.each([0, 24] as const)(
+    "rejects stale enrollment and revokes binding atomically on password change, clear and restore (%i hours)",
+    async (hours) => {
+      const grant = await authorizeQuickEnrollment(vault, "local-password"),
+        pending = await createQuickCredential(
+          grant,
+          24,
+          new AbortController().signal,
+        );
+      await vault.saveSettings((await vault.snapshot()).settings, 0);
+      await expect(
+        finishQuickEnrollment(vault, pending, new AbortController().signal),
+      ).rejects.toThrow("另一窗口");
+      let binding = await enroll(hours);
+      const backup = await exportBackup(vault, "backup-password");
+      const restored = await importBackup(backup, "backup-password");
+      expect(JSON.stringify(restored)).not.toContain(binding.id);
+      await vault.replace(
+        restored.entries,
+        restored.sessions,
+        restored.photos,
+        2,
+        restored.settings,
       );
-    await vault.saveSettings((await vault.snapshot()).settings, 0);
-    await expect(
-      finishQuickEnrollment(vault, pending, new AbortController().signal),
-    ).rejects.toThrow("另一窗口");
-    let binding = await enroll();
-    const backup = await exportBackup(vault, "backup-password");
-    const restored = await importBackup(backup, "backup-password");
-    expect(JSON.stringify(restored)).not.toContain(binding.id);
-    await vault.replace(
-      restored.entries,
-      restored.sessions,
-      restored.photos,
-      2,
-      restored.settings,
-    );
-    expect(await database.meta.get(QUICK_UNLOCK_META)).toBeUndefined();
-    binding = await enroll();
-    await vault.clear(4);
-    expect(await database.meta.get(QUICK_UNLOCK_META)).toBeUndefined();
-    binding = await enroll();
-    await vault.changePassword("new-password", 6);
-    expect(await database.meta.get(QUICK_UNLOCK_META)).toBeUndefined();
-  });
+      expect(await database.meta.get(QUICK_UNLOCK_META)).toBeUndefined();
+      binding = await enroll(hours);
+      await vault.clear(4);
+      expect(await database.meta.get(QUICK_UNLOCK_META)).toBeUndefined();
+      binding = await enroll(hours);
+      await vault.changePassword("new-password", 6);
+      expect(await database.meta.get(QUICK_UNLOCK_META)).toBeUndefined();
+    },
+  );
 });
