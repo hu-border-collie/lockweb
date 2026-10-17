@@ -96,8 +96,8 @@
 
 ## 3. 通用组件模式（写进 `src/styles/tokens.css` / `shell.css`）
 
-**页面骨架**：`.app-shell` 最大宽 `--content-max`；`main` 左右 `--gutter`；`page-title` 下方 1px 细线，底边距 24px。
-`page-title` 结构：`.eyebrow`（朱砂色，编号/日期）→ `h1`（宋体）→ 右侧 `.local-tag`（苔绿小字）。
+**页面骨架**：`.app-shell` 最大宽 `--content-max`；`main` 左右 `--gutter`。
+页面不使用装饰性大标题：每页只保留一个 `sr-only` 的 `<h1>` 功能名（今天 / 日历 / 记录 / 回顾 / 设置）；今天页在正文顶部有一条 `.page-meta`（日期 `.eyebrow` + 右侧 `.local-tag`，下方 1px 细线），其余页面直接从内容区开始。
 
 **纸页卡片 `.card`**：
 ```css
@@ -144,7 +144,7 @@ margin-bottom: 16px;
 | 文件 | 负责人 | 负责的选择器（现有 class 名必须保留） |
 |---|---|---|
 | `src/styles/tokens.css` | Lead | `:root` 变量、暗色、reset、`h1-h3/p/small/a`、`button`、`.primary/.secondary/.text-button/.danger-button/.danger-text/.wide`、`.field`/输入、`.checkbox`、`.segmented`、`.error/.success`、`.muted`、`.group-label`、`.section-line`、`.sr-only`、`.toast`、`.offline-banner`、`.loading` |
-| `src/styles/shell.css` | Lead | `.app-shell/.app-header/.brand*/.page-title/.eyebrow/.local-tag`、`.bottom-nav/.capture-nav`、`.page-footer`、`.card`、`.photo-thumb/.photo-strip/.record*/.tags`、`.empty`、`.modal-backdrop/.sheet/.sheet-heading`、`.viewer*`、`.privacy-cover`、`.auth*` |
+| `src/styles/shell.css` | Lead | `.app-shell/.app-header/.brand*/.page-meta/.eyebrow/.local-tag`、`.bottom-nav/.capture-nav`、`.page-footer`、`.card`、`.photo-thumb/.photo-strip/.record*/.tags`、`.empty`、`.modal-backdrop/.sheet/.sheet-heading`、`.viewer*`、`.privacy-cover`、`.auth*` |
 | `src/styles/home.css` | Home 负责人 | `.wear-hero/.hero-*/.state-label/.home-metrics/.quick-capture/.recent-grid/.fate-launch*/.fate-session-badge` |
 | `src/styles/calendar.css` | Calendar 负责人 | `.calendar-card/.month-heading/.calendar-grid/.weekdays/.day*/.calendar-foot/.timeline-date` |
 | `src/styles/records.css` | 记录表单负责人 | `.entry-form/.capture-zone/.camera-symbol/.capture-buttons/.draft-photos/.remove-photo/.photo-edit/.details-toggle/.comfort-options/.privacy-caption/.fast-tags`、`.session-row`、`.brush-canvas`、`.compare-*`、`.share-preview` 以外的表单选择器 |

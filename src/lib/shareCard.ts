@@ -79,7 +79,7 @@ export async function renderShareCard(
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = INK;
   ctx.font = '600 64px "Songti SC","STSong",serif';
-  ctx.fillText("日子自己会说话。", pad, 246);
+  ctx.fillText("我的记录", pad, 246);
 
   /* 落款小字 */
   ctx.fillStyle = SOFT;

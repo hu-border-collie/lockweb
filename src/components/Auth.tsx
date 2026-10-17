@@ -140,10 +140,6 @@ export function Auth({
         </span>
       </div>
       <div className="auth-intro">
-        <span className="eyebrow">私人手记 · 本机加密</span>
-        <h1>
-          {config ? "这册手记，\n只为你翻开。" : "从今天起，\n写一本自己的手记。"}
-        </h1>
         <p>
           {config
             ? "输入密码，回到上次那一页。"

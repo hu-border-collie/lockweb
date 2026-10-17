@@ -89,29 +89,21 @@
 /* ---------- 页面主体与标题 ---------- */
 
 main {
-  padding: 4px var(--gutter) calc(var(--nav-h) + env(safe-area-inset-bottom) + 34px);
+  padding: 12px var(--gutter) calc(var(--nav-h) + env(safe-area-inset-bottom) + 34px);
 }
 
-.page-title {
+.page-meta {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 14px 0 26px;
-  padding-bottom: 15px;
+  margin: 6px 0 20px;
+  padding-bottom: 13px;
   border-bottom: 1px solid var(--rule);
 }
 
-.page-title > div {
-  min-width: 0;
-}
-
-.page-title .eyebrow {
-  margin-bottom: 10px;
-}
-
-.page-title h1 {
-  overflow-wrap: anywhere;
+.page-meta .eyebrow {
+  margin: 0;
 }
 
 .local-tag {
@@ -119,7 +111,6 @@ main {
   align-items: center;
   gap: 5px;
   flex-shrink: 0;
-  padding-bottom: 4px;
   color: var(--moss);
   font-size: 10px;
   letter-spacing: 0.12em;
@@ -629,25 +620,14 @@ main {
 }
 
 .auth-intro {
-  margin: 52px 0 30px;
-}
-
-.auth-intro h1 {
-  margin-bottom: 16px;
-  white-space: pre-line;
-  font-size: clamp(30px, 8vw, 38px);
-  line-height: 1.42;
+  margin: 46px 0 26px;
 }
 
 .auth-intro p {
   white-space: pre-line;
-  color: var(--ink-faint);
-  font-size: 13px;
-  line-height: 1.85;
-}
-
-.auth-intro .eyebrow {
-  margin-bottom: 14px;
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: 1.9;
 }
 
 .auth-form {
@@ -711,9 +691,9 @@ main {
     padding-top: 8px;
   }
 
-  .page-title {
-    margin-top: 22px;
-    margin-bottom: 30px;
+  .page-meta {
+    margin-top: 14px;
+    margin-bottom: 26px;
   }
 
   .wear-hero {
@@ -757,9 +737,5 @@ main {
   .auth {
     padding-left: 18px;
     padding-right: 18px;
-  }
-
-  .page-title h1 {
-    font-size: 27px;
   }
 }

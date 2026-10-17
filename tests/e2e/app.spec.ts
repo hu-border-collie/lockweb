@@ -5,8 +5,8 @@ async function unlock(page: import("@playwright/test").Page) {
   await page.getByLabel("密码", { exact: true }).fill("test-password");
   await page.getByRole("button", { name: "打开手记", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "今天，写给自己。" }),
-  ).toBeVisible();
+    page.getByRole("navigation").getByRole("button", { name: "今天", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
 }
 async function create(page: import("@playwright/test").Page) {
   await page.getByLabel("设置密码").fill("test-password");
@@ -26,8 +26,8 @@ async function add(page: import("@playwright/test").Page, count = 1) {
   ).toBeEnabled();
   await page.getByRole("button", { name: "收进今天", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "今天，写给自己。" }),
-  ).toBeVisible();
+    page.getByRole("navigation").getByRole("button", { name: "今天", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
 }
 test("complete offline acceptance: multiple checkins, reopen, views, wear time, encrypted backup and restore", async ({
   page,
@@ -216,7 +216,7 @@ test("edit and delete photos, password lock, responsive dark appearance", async 
     .getByRole("button", { name: /改一改/ })
     .click();
   await page.getByRole("button", { name: "删掉这一页" }).click();
-  await page.getByRole("button", { name: "确认删去", exact: true }).click();
+  await page.getByRole("button", { name: "确认删除", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page
     .getByRole("navigation")

@@ -471,43 +471,34 @@ function Unlocked({
         </div>
       )}
       <main>
-        <div className="page-title">
-          <div>
+        <h1 className="sr-only">
+          {
+            {
+              home: "今天",
+              calendar: "日历",
+              checkin: "记录",
+              stats: "回顾",
+              settings: "设置",
+            }[tab]
+          }
+        </h1>
+        {tab === "home" && (
+          <div className="page-meta">
             <span className="eyebrow">
-              {tab === "home"
-                ? new Intl.DateTimeFormat("zh-CN", {
-                    month: "long",
-                    day: "numeric",
-                    weekday: "long",
-                  })
-                    .format(now)
-                    .replace("日星期", "日 · 星期")
-                : {
-                    calendar: "贰 · 日历",
-                    checkin: "叁 · 记录",
-                    stats: "肆 · 回顾",
-                    settings: "伍 · 设置",
-                  }[tab]}
+              {new Intl.DateTimeFormat("zh-CN", {
+                month: "long",
+                day: "numeric",
+                weekday: "long",
+              })
+                .format(now)
+                .replace("日星期", "日 · 星期")}
             </span>
-            <h1>
-              {
-                {
-                  home: "今天，写给自己。",
-                  calendar: "翻回某一天。",
-                  checkin: "此刻，值得一页。",
-                  stats: "日子自己会说话。",
-                  settings: "这一册，由你保管。",
-                }[tab]
-              }
-            </h1>
-          </div>
-          {tab === "home" && (
             <span className="local-tag">
               <ShieldCheck size={14} />
               本机加密
             </span>
-          )}
-        </div>
+          </div>
+        )}
         {error && (
           <div className="error" role="alert">
             {error}
@@ -611,7 +602,7 @@ function Unlocked({
         </div>
       )}
       {edit && (
-        <Modal title="改一改这一页" onClose={cancelEdit}>
+        <Modal title="编辑记录" onClose={cancelEdit}>
           <EntryForm
             entry={edit}
             vault={vault}
@@ -692,7 +683,7 @@ function Unlocked({
         </Modal>
       )}
       {deletion && (
-        <Modal title="确认删去" onClose={() => setDeletion(null)}>
+        <Modal title="确认删除" onClose={() => setDeletion(null)}>
           <p>
             {deletion.entry
               ? "这一页和它的照片会永久删去，收不回来。"
@@ -714,7 +705,7 @@ function Unlocked({
               })
             }
           >
-            确认删去
+            确认删除
           </button>
         </Modal>
       )}

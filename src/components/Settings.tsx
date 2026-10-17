@@ -194,13 +194,13 @@ export function Settings({
           <ShieldCheck size={22} strokeWidth={1.5} />
         </div>
         <div className="privacy-copy">
-          <h2>只属于你</h2>
+          <h2>隐私与加密</h2>
           <p>
             记录和照片都锁在这台设备里。没有账号，没有上传，没有广告，也没有人跟踪你。
           </p>
         </div>
       </section>
-      <h3 className="group-label">守护这份手记</h3>
+      <h3 className="group-label">隐私与备份</h3>
       <div className="card settings-list">
         <SettingRow
           icon={<Lock size={18} strokeWidth={1.5} aria-hidden="true" />}
@@ -227,7 +227,7 @@ export function Settings({
           onClick={() => openPanel("import")}
         />
       </div>
-      <h3 className="group-label">这台设备</h3>
+      <h3 className="group-label">设备与偏好</h3>
       <BiometricSettings vault={vault} revision={revision} refresh={refresh} />
       <JournalOptions
         vault={vault}

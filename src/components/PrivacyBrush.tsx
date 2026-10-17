@@ -120,7 +120,7 @@ export function PrivacyBrush({
   };
   return (
     <Modal
-      title="把照片遮一遮"
+      title="照片打码"
       onClose={() => {
         if (!busy) onClose();
       }}

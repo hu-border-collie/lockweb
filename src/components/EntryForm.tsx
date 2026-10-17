@@ -176,7 +176,7 @@ export const EntryForm = memo(function EntryForm({
           <Camera size={56} strokeWidth={1} />
         </div>
         <div className="capture-copy">
-          <h3>{entry ? "改一改这一页" : "把此刻留下来"}</h3>
+          <h3>{entry ? "更新照片" : "拍照或选照片"}</h3>
           <p>照片会和时间一起，收进今天。</p>
         </div>
         <div className="capture-buttons">
