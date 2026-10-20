@@ -34,18 +34,23 @@ export function ShareCard({
   return (
     <>
       <button
-        className="secondary wide"
+        className="stat-entry"
+        type="button"
         onClick={() => {
           setOpen(true);
           setCard(null);
           setError("");
         }}
       >
-        生成脱敏战报
+        <span className="stat-entry-mark" aria-hidden="true" />
+        <span className="stat-entry-title">做一张匿名小结</span>
+        <span className="stat-entry-arrow" aria-hidden="true">
+          →
+        </span>
       </button>
       {open && (
         <Modal
-          title="脱敏战报预览"
+          title="匿名小结预览"
           onClose={() => {
             if (!busy) {
               setOpen(false);
@@ -54,9 +59,9 @@ export function ShareCard({
           }}
         >
           <p className="muted">
-            仅显示连续天数、累计时长和里程碑，不包含照片、备注、标签或精确时间。确认预览后再保存或分享。
+            只会出现连续天数、累计时长和小里程碑，不会带上照片、备注、标签或具体时间。预览满意后再保存或分享。
           </p>
-          <label className="checkbox">
+          <label className="checkbox share-heat">
             <input
               type="checkbox"
               checked={heat}
@@ -66,10 +71,11 @@ export function ShareCard({
                 setCard(null);
               }}
             />
-            包含热力图剪影（会透露每日打卡分布）
+            带上热力剪影（会透露每天有没有记录）
           </label>
           <button
             className="primary wide"
+            type="button"
             disabled={busy}
             onClick={async () => {
               setBusy(true);
@@ -93,27 +99,28 @@ export function ShareCard({
               }
             }}
           >
-            {busy ? "正在生成…" : "生成战报预览"}
+            {busy ? "正在生成…" : "生成小结"}
           </button>
           {card && (
-            <>
+            <div className="share-result">
               <img
                 className="share-preview"
                 src={card.url}
-                alt="脱敏战报预览"
+                alt="匿名小结预览"
               />
               <button
                 className="secondary wide"
+                type="button"
                 onClick={async () => {
                   if (!navigator.canShare?.({ files: [card.file] })) {
-                    setError("此设备不支持文件分享，请使用下方保存图片链接。");
+                    setError("这台设备没法直接分享，请用下面的保存链接。");
                     return;
                   }
                   beginSystemDialog();
                   try {
                     await navigator.share({
                       files: [card.file],
-                      title: "我的记录成果",
+                      title: "我的手记小结",
                     });
                   } catch (e) {
                     if ((e as Error).name !== "AbortError")
@@ -123,17 +130,17 @@ export function ShareCard({
                   }
                 }}
               >
-                系统分享战报
+                分享这张小结
               </button>
               <a
-                className="backup-link"
+                className="share-save-link"
                 href={card.url}
                 download={card.file.name}
                 onClick={() => beginSystemDialog()}
               >
-                保存战报图片
+                保存图片
               </a>
-            </>
+            </div>
           )}
           {error && (
             <p className="error" role="alert">

@@ -8,6 +8,7 @@ import {
 import type { Vault } from "../lib/db";
 import { userError } from "../lib/db";
 import { Modal } from "./Shared";
+import { ChevronRight, SlidersHorizontal } from "lucide-react";
 
 export function JournalOptions({
   vault,
@@ -37,6 +38,7 @@ export function JournalOptions({
       <h3 className="group-label">记录偏好与装备</h3>
       <div className="card settings-list">
         <button
+          type="button"
           onClick={() => {
             setDraft(structuredClone(settings));
             setBase(revision);
@@ -46,13 +48,23 @@ export function JournalOptions({
             setError("");
           }}
         >
-          模板、快捷标签与装备档案
+          <SlidersHorizontal size={18} strokeWidth={1.5} aria-hidden="true" />
+          <span>
+            <span className="setting-title">模板、快捷标签与装备</span>
+            <small>常用的写法和装备，都在这里</small>
+          </span>
+          <ChevronRight
+            className="settings-arrow"
+            size={16}
+            strokeWidth={1.5}
+            aria-hidden="true"
+          />
         </button>
       </div>
-      <div className="card">
+      <div className="card journal-storage">
         <h2>照片存储分析</h2>
-        <p className="muted">
-          按打卡月份统计加密大图和缩略图的字节数；不包含数据库索引和应用缓存。不会压缩或删除照片。
+        <p className="muted journal-storage-note">
+          按月份统计加密原图和缩略图占用的字节数，不包含索引和应用缓存。不会压缩或删除照片。
         </p>
         <button
           className="secondary"
@@ -69,7 +81,7 @@ export function JournalOptions({
             }
           }}
         >
-          {storageBusy ? "正在统计…" : "分析照片占用"}
+          {storageBusy ? "正在算…" : "分析照片占用"}
         </button>
         {storageError && (
           <p className="error" role="alert">
@@ -77,21 +89,23 @@ export function JournalOptions({
           </p>
         )}
         {storage && (
-          <>
+          <div className="settings-block">
             <p className="muted">本次分析结果 · 数据变化后请重新分析</p>
             {storage.length ? (
-              storage.map((m) => (
-                <div className="data-row" key={m.month}>
-                  <span>
-                    {m.month} · {m.count} 张
-                  </span>
-                  <strong>{(m.bytes / 1024 / 1024).toFixed(2)} MB</strong>
-                </div>
-              ))
+              <div className="storage-months">
+                {storage.map((m) => (
+                  <div className="data-row storage-row" key={m.month}>
+                    <span>
+                      {m.month} · {m.count} 张
+                    </span>
+                    <strong>{(m.bytes / 1024 / 1024).toFixed(2)} MB</strong>
+                  </div>
+                ))}
+              </div>
             ) : (
               <p className="muted">还没有照片</p>
             )}
-          </>
+          </div>
         )}
       </div>
       {draft && (
@@ -101,18 +115,18 @@ export function JournalOptions({
             if (!busy) setDraft(null);
           }}
         >
-          <fieldset className="form-stack" disabled={busy}>
+          <fieldset className="settings-sheet-form" disabled={busy}>
             <label className="field">
               常用快捷标签
               <input
                 value={tags}
                 maxLength={5000}
                 onChange={(e) => setTags(e.target.value)}
-                placeholder="用逗号分隔"
+                placeholder="用逗号分开"
               />
             </label>
             <label className="field">
-              保持连续周期的小憩上限（分钟）
+              连续佩戴的小憩上限（分钟）
               <input
                 type="number"
                 min={0}
@@ -126,27 +140,37 @@ export function JournalOptions({
                 }
               />
               <small>
-                小憩始终扣除实际时长；超过上限后重新计算连续佩戴。0
-                表示每次小憩都截断。
+                小憩总会从实际时长里扣掉；超过上限后，连续佩戴会重新计算。填
+                0 表示每次小憩都会中断连续。
               </small>
             </label>
-            <h3>打卡模板</h3>
-            {draft.templates.map((t) => (
-              <div className="option-row" key={t.id}>
-                <button onClick={() => setTemplate({ ...t })}>{t.name}</button>
-                <button
-                  aria-label={`删除模板 ${t.name}`}
-                  onClick={() =>
-                    setDraft({
-                      ...draft,
-                      templates: draft.templates.filter((x) => x.id !== t.id),
-                    })
-                  }
-                >
-                  删除
-                </button>
-              </div>
-            ))}
+            <h3>记录模板</h3>
+            <div className="settings-option-list">
+              {draft.templates.map((t) => (
+                <div className="option-row settings-option" key={t.id}>
+                  <button
+                    type="button"
+                    className="settings-option-main"
+                    onClick={() => setTemplate({ ...t })}
+                  >
+                    {t.name}
+                  </button>
+                  <button
+                    type="button"
+                    className="settings-option-action"
+                    aria-label={`删除模板 ${t.name}`}
+                    onClick={() =>
+                      setDraft({
+                        ...draft,
+                        templates: draft.templates.filter((x) => x.id !== t.id),
+                      })
+                    }
+                  >
+                    删除
+                  </button>
+                </div>
+              ))}
+            </div>
             <button
               className="secondary"
               onClick={() =>
@@ -160,7 +184,7 @@ export function JournalOptions({
               新增模板
             </button>
             {template && (
-              <div className="card">
+              <div className="settings-subform">
                 <label className="field">
                   模板名称
                   <input
@@ -202,34 +226,42 @@ export function JournalOptions({
                   className="text-button"
                   onClick={() => setTemplate(null)}
                 >
-                  取消编辑模板
+                  不编辑了
                 </button>
               </div>
             )}
             <h3>装备档案</h3>
-            <p className="muted">
-              归档后不再出现在新记录选项中，历史关联与统计保留。
+            <p className="settings-hint">
+              归档后不再出现在新的记录选项里，但历史和统计会保留。
             </p>
-            {draft.gears.map((g) => (
-              <div className="option-row" key={g.id}>
-                <button onClick={() => setGear({ ...g })}>
-                  {g.name}
-                  {g.archived ? "（已归档）" : ""}
-                </button>
-                <button
-                  onClick={() =>
-                    setDraft({
-                      ...draft,
-                      gears: draft.gears.map((x) =>
-                        x.id === g.id ? { ...x, archived: !x.archived } : x,
-                      ),
-                    })
-                  }
-                >
-                  {g.archived ? "启用" : "归档"}
-                </button>
-              </div>
-            ))}
+            <div className="settings-option-list">
+              {draft.gears.map((g) => (
+                <div className="option-row settings-option" key={g.id}>
+                  <button
+                    type="button"
+                    className="settings-option-main"
+                    onClick={() => setGear({ ...g })}
+                  >
+                    {g.name}
+                    {g.archived ? "（已归档）" : ""}
+                  </button>
+                  <button
+                    type="button"
+                    className="settings-option-action"
+                    onClick={() =>
+                      setDraft({
+                        ...draft,
+                        gears: draft.gears.map((x) =>
+                          x.id === g.id ? { ...x, archived: !x.archived } : x,
+                        ),
+                      })
+                    }
+                  >
+                    {g.archived ? "启用" : "归档"}
+                  </button>
+                </div>
+              ))}
+            </div>
             <button
               className="secondary"
               onClick={() =>
@@ -248,7 +280,7 @@ export function JournalOptions({
               新增装备
             </button>
             {gear && (
-              <div className="card">
+              <div className="settings-subform">
                 {(
                   [
                     ["name", "装备名称"],
@@ -299,7 +331,7 @@ export function JournalOptions({
                   保留装备到草稿
                 </button>
                 <button className="text-button" onClick={() => setGear(null)}>
-                  取消编辑装备
+                  不编辑了
                 </button>
               </div>
             )}
@@ -338,7 +370,7 @@ export function JournalOptions({
                 }
               }}
             >
-              {busy ? "正在保存…" : "保存全部偏好与档案"}
+              {busy ? "正在保存…" : "保存这些设置"}
             </button>
           </fieldset>
         </Modal>

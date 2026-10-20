@@ -11,15 +11,15 @@ export default defineConfig({
       registerType: "prompt",
       includeManifestIcons: false,
       manifest: {
-        name: "私记 · 本地记录",
+        name: "私记 · 一册自己的手记",
         short_name: "私记",
-        description: "只留在你设备里的私人照片与时间记录",
+        description: "一本只写给自己、只留在本机的照片手记",
         lang: "zh-CN",
         start_url: "./",
         scope: "./",
         display: "standalone",
-        background_color: "#f6f7f9",
-        theme_color: "#f6f7f9",
+        background_color: "#f4efe6",
+        theme_color: "#f4efe6",
         icons: [
           {
             src: "icons/icon-192.png",

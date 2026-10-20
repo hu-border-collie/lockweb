@@ -52,10 +52,10 @@ import {
   totalWear,
 } from "./lib/time";
 const NAV = [
-  { id: "home", label: "首页", icon: HomeIcon },
+  { id: "home", label: "今天", icon: HomeIcon },
   { id: "calendar", label: "日历", icon: CalendarDays },
-  { id: "checkin", label: "打卡", icon: Camera },
-  { id: "stats", label: "统计", icon: ChartNoAxesCombined },
+  { id: "checkin", label: "记录", icon: Camera },
+  { id: "stats", label: "回顾", icon: ChartNoAxesCombined },
   { id: "settings", label: "设置", icon: SettingsIcon },
 ];
 export default function App() {
@@ -96,6 +96,17 @@ export default function App() {
     try {
       localStorage.setItem("private-log-theme", theme);
     } catch {}
+    // 让浏览器工具栏跟随纸张颜色；应用内不再维护第二份状态。
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const paint = () => {
+      const dark = theme === "dark" || (theme === "system" && media.matches);
+      document
+        .querySelector('meta[name="theme-color"]')
+        ?.setAttribute("content", dark ? "#14110d" : "#f4efe6");
+    };
+    paint();
+    media.addEventListener("change", paint);
+    return () => media.removeEventListener("change", paint);
   }, [theme]);
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -142,8 +153,8 @@ export default function App() {
       <div className="auth">
         <h1>需要安全连接</h1>
         <p>
-          请使用 HTTPS 网站，或在电脑上使用 localhost
-          开发服务。不能直接从“文件”App 打开 HTML。
+          请用 HTTPS 地址打开，或在电脑上使用 localhost
+          预览。不能直接从「文件」App 打开网页。
         </p>
       </div>
     );
@@ -151,7 +162,7 @@ export default function App() {
     return (
       <div className="loading">
         <LockKeyhole />
-        <p>正在打开本地空间…</p>
+        <p>正在翻开手记…</p>
       </div>
     );
   if (!vault)
@@ -177,7 +188,7 @@ export default function App() {
         aria-hidden={!hidden}
       >
         <LockKeyhole />
-        <span>私记 · 已隐藏</span>
+        <span>手记已收起</span>
       </div>
       <Unlocked
         key={vault.config.id}
@@ -190,7 +201,7 @@ export default function App() {
         onUpdate={() => {
           if (
             confirm(
-              "应用更新会重新打开页面。请先保存正在编辑的内容。现在更新？",
+              "更新会重新打开页面。请先把正在写的内容保存好。现在更新吗？",
             )
           )
             void updateServiceWorker(true);
@@ -343,7 +354,7 @@ function Unlocked({
     setEdit(null);
     setTab("home");
     setFormKey((v) => v + 1);
-    setMessage("打卡已保存在本机");
+    setMessage("已收进今天。");
   }, [refresh]);
   const navigate = useCallback((t: string) => {
     setTab(t);
@@ -373,7 +384,7 @@ function Unlocked({
           },
           revision,
         );
-        setMessage("本次佩戴已结束");
+        setMessage("这一程，记下了。");
       } else {
         await vault.saveSession(
           {
@@ -385,7 +396,7 @@ function Unlocked({
           },
           revision,
         );
-        setMessage("已开始记录佩戴时间");
+        setMessage("开始计时。慢慢来。");
       }
     });
   }, [active, gearId, revision, run, vault]);
@@ -414,7 +425,7 @@ function Unlocked({
   if (!ready)
     return (
       <div className="auth">
-        <p role={error ? "alert" : "status"}>{error || "正在读取记录…"}</p>
+        <p role={error ? "alert" : "status"}>{error || "正在读取手记…"}</p>
         {error && (
           <button
             className="secondary"
@@ -424,7 +435,7 @@ function Unlocked({
           </button>
         )}
         <button className="text-button" onClick={lock}>
-          锁定应用
+          合上手记
         </button>
       </div>
     );
@@ -432,11 +443,11 @@ function Unlocked({
     <PrivateShell stealth={stealth}>
       <header className="app-header">
         <div className="brand">
-          <span className="brand-mark">
-            <LockKeyhole size={19} />
+          <span className="brand-mark" aria-hidden="true">
+            私
           </span>
           <div>
-            私记<small>只留给自己</small>
+            私记<small>只写给自己</small>
           </div>
         </div>
         <div className="header-actions">
@@ -456,40 +467,38 @@ function Unlocked({
       {!online && (
         <div className="offline-banner">
           <WifiOff size={14} />
-          离线使用中 · 记录仍保存在本机
+          离线中 · 手记仍在本机
         </div>
       )}
       <main>
-        <div className="page-title">
-          <div>
+        <h1 className="sr-only">
+          {
+            {
+              home: "今天",
+              calendar: "日历",
+              checkin: "记录",
+              stats: "回顾",
+              settings: "设置",
+            }[tab]
+          }
+        </h1>
+        {tab === "home" && (
+          <div className="page-meta">
             <span className="eyebrow">
-              {tab === "home"
-                ? new Intl.DateTimeFormat("zh-CN", {
-                    month: "long",
-                    day: "numeric",
-                    weekday: "long",
-                  }).format(now)
-                : "YOUR PRIVATE SPACE"}
+              {new Intl.DateTimeFormat("zh-CN", {
+                month: "long",
+                day: "numeric",
+                weekday: "long",
+              })
+                .format(now)
+                .replace("日星期", "日 · 星期")}
             </span>
-            <h1>
-              {
-                {
-                  home: "今天，留给自己。",
-                  calendar: "每一天，都有迹可循。",
-                  checkin: "记录这一刻。",
-                  stats: "日常，慢慢积累。",
-                  settings: "你的空间，由你掌握。",
-                }[tab]
-              }
-            </h1>
-          </div>
-          {tab === "home" && (
             <span className="local-tag">
               <ShieldCheck size={14} />
-              本地加密
+              本机加密
             </span>
-          )}
-        </div>
+          </div>
+        )}
         {error && (
           <div className="error" role="alert">
             {error}
@@ -569,7 +578,7 @@ function Unlocked({
         )}
         <footer className="page-footer">
           <ShieldCheck size={13} />
-          本地空间 · 只有你能打开
+          私记 · 只在这台设备上
         </footer>
       </main>
       <nav className="bottom-nav" aria-label="主导航">
@@ -593,7 +602,7 @@ function Unlocked({
         </div>
       )}
       {edit && (
-        <Modal title="编辑打卡" onClose={cancelEdit}>
+        <Modal title="编辑记录" onClose={cancelEdit}>
           <EntryForm
             entry={edit}
             vault={vault}
@@ -612,7 +621,7 @@ function Unlocked({
         <FateWheel vault={vault} state={fate} entries={entries} revision={revision} now={now} refresh={refresh} />
       </Modal>}
       {manage && (
-        <Modal title="佩戴时段" onClose={() => setManage(false)}>
+        <Modal title="时段" onClose={() => setManage(false)}>
           <button
             className="primary wide"
             onClick={() => {
@@ -621,9 +630,9 @@ function Unlocked({
             }}
           >
             <Plus size={18} />
-            补录佩戴时段
+            补记时段
           </button>
-          <p className="muted">可编辑开始与结束时间，重叠时间不会重复统计。</p>
+          <p className="muted">开始和结束时间都能改；重叠的时间只算一次。</p>
           {sessions.length ? (
             sessions.map((s) => (
               <button
@@ -647,8 +656,8 @@ function Unlocked({
             ))
           ) : (
             <Empty
-              title="还没有佩戴时段"
-              detail="开始佩戴或补录时段后，可以在这里管理。"
+              title="还没有时段"
+              detail="开始佩戴或补记一段，之后都能在这里修改。"
               icon={<Timer />}
             />
           )}
@@ -656,7 +665,7 @@ function Unlocked({
       )}
       {sessionModal && (
         <Modal
-          title={sessionModal === true ? "补录佩戴时段" : "编辑佩戴时段"}
+          title={sessionModal === true ? "补记时段" : "修改时段"}
           onClose={() => setSessionModal(null)}
         >
           <SessionForm
@@ -667,7 +676,7 @@ function Unlocked({
             onSave={async () => {
               await refresh();
               setSessionModal(null);
-              setMessage("佩戴时段已保存");
+              setMessage("时段已记下。");
             }}
             onDelete={(s) => setDeletion({ session: s })}
           />
@@ -677,8 +686,8 @@ function Unlocked({
         <Modal title="确认删除" onClose={() => setDeletion(null)}>
           <p>
             {deletion.entry
-              ? "这次打卡及其所有照片将永久删除。"
-              : "这个佩戴时段将永久删除；拍照打卡仍会保留。"}
+              ? "这一页和它的照片会永久删去，收不回来。"
+              : "这个时段会永久删去；已经记下的照片仍会保留。"}
           </p>
           <button
             className="danger-button wide"
@@ -692,7 +701,7 @@ function Unlocked({
                 setDeletion(null);
                 setEdit(null);
                 setSessionModal(null);
-                setMessage("已删除");
+                setMessage("已删去。");
               })
             }
           >

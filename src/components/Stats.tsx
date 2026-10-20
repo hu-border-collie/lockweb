@@ -67,68 +67,90 @@ export const Stats = memo(function Stats({
     [now],
   );
   return (
-    <>
+    <div className="stat-page">
       <ShareCard entries={entries} sessions={sessions} now={now} />
       <FateHistory state={fate} />
       <div className="stat-grid">
         <div className="card metric">
-          <span>今日 / 本周 / 本月</span>
+          <span>今天 · 本周 · 本月</span>
           <strong>
             {stats.today}
-            <small>
-              {" "}
-              / {stats.week} / {stats.month}
-            </small>
+            <small> 笔</small>
           </strong>
-          <p>打卡次数 · 本周从周一开始</p>
+          <p>
+            本周 {stats.week} 笔 · 本月 {stats.month} 笔
+          </p>
         </div>
         <div className="card metric">
-          <span>累计照片</span>
+          <span>照片总数</span>
           <strong>
             {stats.photos}
             <small> 张</small>
           </strong>
-          <p>共 {entries.length} 次打卡</p>
+          <p>共 {entries.length} 次记录</p>
         </div>
         <div className="card metric">
-          <span>累计佩戴</span>
+          <span>佩戴总时长</span>
           <strong>
             {(stats.total / 3600000).toFixed(1)}
             <small> 小时</small>
           </strong>
-          <p>重叠时间已合并</p>
+          <p>重叠的时间只算一次</p>
         </div>
         <div className="card metric">
-          <span>连续打卡</span>
+          <span>连续记录</span>
           <strong>
             {stats.current}
             <small> 天</small>
           </strong>
-          <p>历史最长 {stats.longest} 天</p>
+          <p>最长连续 {stats.longest} 天</p>
         </div>
       </div>
-      <div className="card stat-detail">
-        <span>最长单次佩戴</span>
+      <div className="card stat-card stat-detail">
+        <span>最长的一次佩戴</span>
         <strong>{duration(stats.longestWear)}</strong>
       </div>
-      <div className="card">
+      <div className="card stat-card">
         <h2>舒适度与佩戴时长</h2>
         <p className="muted">
-          按打卡时已累计的实际佩戴小时分组。仅使用明确关联时段、佩戴中且填写评分的样本；表示记录相关性。
+          把记录按当时已经佩戴的小时数分组；只用明确关联时段、佩戴中且有评分的记录。它表示记录之间的关联，不是结论。
         </p>
         <div className="chart">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={analysis.comfort}>
+              <CartesianGrid stroke="var(--rule)" vertical={false} />
               <XAxis
                 dataKey="name"
-                tick={{ fill: "var(--muted)", fontSize: 10 }}
+                tick={{ fill: "var(--ink-faint)", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
               />
-              <YAxis domain={[1, 5]} width={28} />
-              <Tooltip />
+              <YAxis
+                domain={[1, 5]}
+                width={28}
+                tick={{ fill: "var(--ink-faint)", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: "var(--paper-raised)",
+                  border: "1px solid var(--rule)",
+                  borderRadius: 4,
+                  fontSize: 12,
+                  padding: "8px 10px",
+                  boxShadow: "var(--shadow)",
+                }}
+                labelStyle={{ color: "var(--ink-soft)" }}
+                itemStyle={{ color: "var(--ink)" }}
+                cursor={{ stroke: "var(--rule-strong)" }}
+              />
               <Line
                 dataKey="average"
                 name="平均舒适度"
-                stroke="var(--teal)"
+                stroke="var(--seal)"
+                strokeWidth={2}
+                dot={{ r: 2, fill: "var(--seal)", stroke: "var(--seal)" }}
                 connectNulls={false}
                 isAnimationActive={false}
               />
@@ -141,28 +163,51 @@ export const Stats = memo(function Stats({
               {b.name} · {b.count} 个评分
             </span>
             <strong>
-              {b.average === null ? "暂无评分" : b.average.toFixed(2)}
+              {b.average === null ? "还没有评分" : b.average.toFixed(2)}
             </strong>
           </div>
         ))}
       </div>
-      <div className="card">
+      <div className="card stat-card">
         <h2>标签与舒适度</h2>
         {analysis.tags.length ? (
           <>
             <div className="chart">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={analysis.tags.slice(0, 20)}>
+                  <CartesianGrid stroke="var(--rule)" vertical={false} />
                   <XAxis
                     dataKey="name"
-                    tick={{ fill: "var(--muted)", fontSize: 10 }}
+                    tick={{ fill: "var(--ink-faint)", fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
                   />
-                  <YAxis domain={[0, 5]} width={28} />
-                  <Tooltip />
+                  <YAxis
+                    domain={[0, 5]}
+                    width={28}
+                    tick={{ fill: "var(--ink-faint)", fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--paper-raised)",
+                      border: "1px solid var(--rule)",
+                      borderRadius: 4,
+                      fontSize: 12,
+                      padding: "8px 10px",
+                      boxShadow: "var(--shadow)",
+                    }}
+                    labelStyle={{ color: "var(--ink-soft)" }}
+                    itemStyle={{ color: "var(--ink)" }}
+                    cursor={{ fill: "var(--paper-sunken)" }}
+                  />
                   <Bar
                     dataKey="average"
                     name="平均舒适度"
-                    fill="var(--accent)"
+                    fill="var(--seal)"
+                    radius={[2, 2, 0, 0]}
+                    maxBarSize={28}
                     isAnimationActive={false}
                   />
                 </BarChart>
@@ -174,56 +219,92 @@ export const Stats = memo(function Stats({
                   {t.name} · {t.count} 个评分
                 </span>
                 <strong>
-                  {t.average === null ? "暂无评分" : t.average.toFixed(2)}
+                  {t.average === null ? "还没有评分" : t.average.toFixed(2)}
                 </strong>
               </div>
             ))}
           </>
         ) : (
-          <p className="muted">还没有标签记录</p>
+          <p className="muted">还没有带标签的记录</p>
         )}
       </div>
-      <div className="card">
-        <h2>打卡时间段分布</h2>
+      <div className="card stat-card">
+        <h2>记录时段分布</h2>
+        <div className="chart-legend">
+          <span>
+            <i aria-hidden="true" />
+            佩戴中
+          </span>
+          <span>
+            <i className="moss" aria-hidden="true" />
+            未佩戴
+          </span>
+          <span>
+            <i className="faint" aria-hidden="true" />
+            未记录状态
+          </span>
+        </div>
         <div className="chart">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={analysis.hours}>
+              <CartesianGrid stroke="var(--rule)" vertical={false} />
               <XAxis
                 dataKey="name"
-                tick={{ fill: "var(--muted)", fontSize: 10 }}
+                tick={{ fill: "var(--ink-faint)", fontSize: 10 }}
                 minTickGap={25}
+                axisLine={false}
+                tickLine={false}
               />
-              <YAxis allowDecimals={false} width={28} />
-              <Tooltip />
+              <YAxis
+                allowDecimals={false}
+                width={28}
+                tick={{ fill: "var(--ink-faint)", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: "var(--paper-raised)",
+                  border: "1px solid var(--rule)",
+                  borderRadius: 4,
+                  fontSize: 12,
+                  padding: "8px 10px",
+                  boxShadow: "var(--shadow)",
+                }}
+                labelStyle={{ color: "var(--ink-soft)" }}
+                itemStyle={{ color: "var(--ink)" }}
+                cursor={{ fill: "var(--paper-sunken)" }}
+              />
               <Bar
                 dataKey="on"
                 stackId="state"
                 name="佩戴中"
-                fill="var(--accent)"
+                fill="var(--seal)"
                 isAnimationActive={false}
               />
               <Bar
                 dataKey="off"
                 stackId="state"
                 name="未佩戴"
-                fill="var(--teal)"
+                fill="var(--moss)"
                 isAnimationActive={false}
               />
               <Bar
                 dataKey="unspecified"
                 stackId="state"
                 name="未记录状态"
-                fill="var(--muted)"
+                fill="var(--ink-faint)"
+                radius={[2, 2, 0, 0]}
                 isAnimationActive={false}
               />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
-      <div className="card">
+      <div className="card stat-card">
         <h2>装备使用对比</h2>
         <p className="muted">
-          每款装备内的重叠时段合并，小憩已扣除。不同装备之间的重叠时间不相加为总时长。
+          同一件装备内的重叠时段会合并，小憩已经扣掉；不同装备之间不叠加时长。
         </p>
         {analysis.gears.length ? (
           analysis.gears.map((g, i) => (
@@ -232,23 +313,25 @@ export const Stats = memo(function Stats({
               <strong>
                 {g.hours.toFixed(1)} 小时 ·{" "}
                 {g.average === null
-                  ? "暂无评分"
+                  ? "还没有评分"
                   : `${g.average.toFixed(2)} 分（${g.count} 次）`}
               </strong>
             </div>
           ))
         ) : (
-          <p className="muted">建立装备档案并关联记录后显示</p>
+          <p className="muted">建好装备档案、关联记录后，这里会出现对比。</p>
         )}
       </div>
-      <div className="card chart-card">
+      <div className="card stat-card chart-card">
         <div className="section-line">
           <h2>记录趋势</h2>
-          <div className="range-select">
+          <div className="range-select" role="group" aria-label="趋势区间">
             {[7, 30, 90].map((n) => (
               <button
                 key={n}
+                type="button"
                 className={n === range ? "selected" : ""}
+                aria-pressed={n === range}
                 onClick={() => setRange(n)}
               >
                 {n} 天
@@ -258,11 +341,11 @@ export const Stats = memo(function Stats({
         </div>
         <div className="chart-legend">
           <span>
-            <i />
-            打卡次数
+            <i aria-hidden="true" />
+            记录笔数
           </span>
           <span>
-            <i className="teal" />
+            <i className="moss" aria-hidden="true" />
             佩戴小时
           </span>
         </div>
@@ -272,10 +355,10 @@ export const Stats = memo(function Stats({
               data={data}
               margin={{ left: -26, right: -20, top: 8, bottom: 0 }}
             >
-              <CartesianGrid stroke="var(--line)" vertical={false} />
+              <CartesianGrid stroke="var(--rule)" vertical={false} />
               <XAxis
                 dataKey="label"
-                tick={{ fill: "var(--muted)", fontSize: 10 }}
+                tick={{ fill: "var(--ink-faint)", fontSize: 10 }}
                 minTickGap={25}
                 axisLine={false}
                 tickLine={false}
@@ -283,7 +366,8 @@ export const Stats = memo(function Stats({
               <YAxis
                 yAxisId="count"
                 allowDecimals={false}
-                tick={{ fill: "var(--muted)", fontSize: 10 }}
+                width={32}
+                tick={{ fill: "var(--ink-faint)", fontSize: 10 }}
                 axisLine={false}
                 tickLine={false}
               />
@@ -291,24 +375,31 @@ export const Stats = memo(function Stats({
                 yAxisId="hours"
                 orientation="right"
                 domain={[0, 24]}
-                tick={{ fill: "var(--muted)", fontSize: 10 }}
+                width={32}
+                tick={{ fill: "var(--ink-faint)", fontSize: 10 }}
                 axisLine={false}
                 tickLine={false}
               />
               <Tooltip
                 contentStyle={{
-                  background: "var(--card)",
-                  border: "1px solid var(--line)",
-                  borderRadius: 12,
+                  background: "var(--paper-raised)",
+                  border: "1px solid var(--rule)",
+                  borderRadius: 4,
+                  fontSize: 12,
+                  padding: "8px 10px",
+                  boxShadow: "var(--shadow)",
                 }}
+                labelStyle={{ color: "var(--ink-soft)" }}
+                itemStyle={{ color: "var(--ink)" }}
+                cursor={{ fill: "var(--paper-sunken)" }}
               />
               <Bar
                 isAnimationActive={false}
                 yAxisId="count"
-                name="打卡次数"
+                name="记录笔数"
                 dataKey="checkins"
-                fill="var(--accent)"
-                radius={[4, 4, 0, 0]}
+                fill="var(--seal)"
+                radius={[2, 2, 0, 0]}
                 maxBarSize={24}
               />
               <Line
@@ -316,29 +407,30 @@ export const Stats = memo(function Stats({
                 yAxisId="hours"
                 name="佩戴小时"
                 dataKey="hours"
-                stroke="var(--teal)"
-                dot={false}
+                stroke="var(--moss)"
                 strokeWidth={2}
+                dot={false}
               />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
         {!entries.length && !sessions.length && (
-          <p className="muted">还没有数据，图表会随真实记录更新。</p>
+          <p className="muted">还没有数据，图表会跟着记录长出来。</p>
         )}
       </div>
-      <div className="card heat-card">
+      <div className="card stat-card heat-card">
         <div className="section-line">
-          <h2>打卡足迹</h2>
+          <h2>记录足迹</h2>
           <span className="muted">最近 12 周</span>
         </div>
         <div className="heat-grid">
           {heat.map((day) => (
             <button
               key={day}
+              type="button"
               className={`heat heat-${Math.min(counts[day] ?? 0, 4)}`}
-              aria-label={`${day}，${counts[day] ?? 0} 次打卡`}
-              title={`${day}：${counts[day] ?? 0} 次`}
+              aria-label={`${day}，${counts[day] ?? 0} 笔记录`}
+              title={`${day}：${counts[day] ?? 0} 笔`}
               onClick={() => onDay(day)}
             />
           ))}
@@ -351,9 +443,9 @@ export const Stats = memo(function Stats({
           <span>多</span>
         </div>
       </div>
-      <div className="card">
+      <div className="card stat-card">
         <div className="section-line">
-          <h2>每日佩戴时长</h2>
+          <h2>每天的佩戴时长</h2>
         </div>
         {data
           .slice()
@@ -365,6 +457,6 @@ export const Stats = memo(function Stats({
             </div>
           ))}
       </div>
-    </>
+    </div>
   );
 });

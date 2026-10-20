@@ -117,31 +117,33 @@ export function BiometricSettings({
   return (
     <>
       <h3 className="group-label">快速解锁</h3>
-      <div className="card">
+      <div className="card quick-unlock">
         <h2>面容 / 指纹与设备验证</h2>
-        <p className="muted">
-          由系统通行密钥验证身份，再解开本地数据密钥。系统可能使用 Face
-          ID、Touch ID
-          或设备密码；通行密钥可能随系统账户同步。应用不读取生物信息、不上传记录。
+        <p className="quick-unlock-intro">
+          用系统通行密钥确认是你，再解开本地密钥。系统可能用面容、指纹或设备密码；通行密钥可能跟着系统账号同步。应用不读取生物信息，也不上传记录。
         </p>
-        <p className="muted">
-          {!loaded
-            ? "正在读取本地绑定…"
-            : binding
-              ? binding.expiresAt === null
-                ? "已绑定 · 永久有效"
-                : `已绑定 · 有效期 ${binding.windowHours < 24 ? `${binding.windowHours} 小时` : `${binding.windowHours / 24} 天`} · ${dateTime(binding.expiresAt)} 到期`
-              : exists
-                ? "本地绑定已失效，可清除或重新启用。"
-                : "尚未启用"}
-        </p>
-        <p className="muted">
-          {capable === null
-            ? "正在检查系统验证能力…"
-            : capable
-              ? "此设备可尝试启用，验证成功后才会保存本地绑定。"
-              : "当前环境无法使用系统快速解锁，密码解锁仍可用。"}
-        </p>
+        <div className="quick-unlock-state">
+          <span
+            className={`status-pill ${binding ? "ready" : exists ? "stale" : ""}`}
+          >
+            {!loaded
+              ? "正在读取本地绑定…"
+              : binding
+                ? binding.expiresAt === null
+                  ? "已绑定 · 永久有效"
+                  : `已绑定 · 有效期 ${binding.windowHours < 24 ? `${binding.windowHours} 小时` : `${binding.windowHours / 24} 天`} · ${dateTime(binding.expiresAt)} 到期`
+                : exists
+                  ? "本地绑定已失效，可清除或重新启用。"
+                  : "尚未启用"}
+          </span>
+          <p className="quick-unlock-capability">
+            {capable === null
+              ? "正在检查系统验证能力…"
+              : capable
+                ? "这台设备可以试试；验证成功才会保存绑定。"
+                : "这里用不了快速解锁，密码仍然可以打开。"}
+          </p>
+        </div>
         <button
           className="secondary"
           disabled={!loaded || !capable || busy}
@@ -168,7 +170,7 @@ export function BiometricSettings({
                 await refresh();
                 if (alive.current)
                   setMessage(
-                    "本地快速解锁已停用。系统保存的通行密钥可在系统密码设置中手动删除。",
+                    "快速解锁已经停用。系统里的通行密钥可以到系统密码设置里手动删掉。",
                   );
               } catch (e) {
                 fail(e, c);
@@ -177,7 +179,7 @@ export function BiometricSettings({
               }
             }}
           >
-            停用本地快速解锁
+            停用快速解锁
           </button>
         )}
         {!panel && error && (
@@ -193,9 +195,10 @@ export function BiometricSettings({
       </div>
       {panel && (
         <Modal title="启用快速解锁" onClose={close}>
-          <fieldset className="form-stack" disabled={busy}>
-            <p className="muted">
-              默认永久有效，每次解锁仍需系统验证。若选择限时窗口，每次输入正确主密码会重新开始计时，快速解锁本身不会延长窗口。取消任意一步均不改变现有绑定；修改密码、清空或覆盖恢复会撤销本地绑定。
+          <fieldset className="settings-sheet-form" disabled={busy}>
+            <p className="settings-note">
+              默认永久有效，每次解锁仍需系统验证；也可以选择 1 天 / 7 天 / 30
+              天。输入正确主密码会重新开始计时，快速解锁本身不会延期。取消任意一步都不改变现有绑定；修改密码、清空或恢复会撤销绑定。
             </p>
             {!grant && (
               <>
@@ -284,8 +287,8 @@ export function BiometricSettings({
                 )}
                 {pending && (
                   <>
-                    <p className="muted">
-                      通行密钥已准备好。再次完成系统验证，确认能派生密钥后才启用。
+                    <p className="settings-hint">
+                      通行密钥已经建好。再做一次系统验证，确认能解开密钥后才会启用。
                     </p>
                     <button
                       className="primary wide"
@@ -299,7 +302,7 @@ export function BiometricSettings({
                             setGrant(null);
                             setPending(null);
                             setMessage(
-                              "快速解锁已启用，下次锁定后可使用系统验证。",
+                              "快速解锁已经启用，下次合上手记就能用系统验证打开。",
                             );
                           }
                         } catch (e) {

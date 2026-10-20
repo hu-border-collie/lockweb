@@ -1,0 +1,824 @@
+/* ==========================================================================
+   设置页 · 纸本手记
+   覆盖 Settings / JournalOptions / BiometricSettings 的视觉与排版。
+   只消费 tokens.css 的设计令牌；不定义 :root，深色「夜读」由变量自动切换。
+   ========================================================================== */
+
+/* ---------- 页面骨架 ---------- */
+
+.settings-page {
+  display: block;
+  min-width: 0;
+}
+
+.settings-page .group-label {
+  margin-top: 34px;
+  margin-bottom: 10px;
+}
+
+.settings-page > .card:last-of-type {
+  margin-bottom: 22px;
+}
+
+/* ---------- 顶部隐私卡：朱砂印章 + 宋体标题 ---------- */
+
+.card.privacy-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  border-top: 2px solid var(--seal);
+}
+
+.privacy-emblem {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--seal-deep);
+  border-radius: var(--radius-sm);
+  background: var(--seal);
+  color: #fdf6ec;
+  box-shadow: var(--shadow);
+  transform: rotate(-2deg);
+}
+
+.privacy-emblem svg {
+  color: #fdf6ec;
+}
+
+.privacy-copy {
+  min-width: 0;
+}
+
+.privacy-copy h2 {
+  font-family: var(--serif);
+  font-size: var(--fs-h2);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.privacy-copy p {
+  margin-top: 8px;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  line-height: 1.8;
+}
+
+/* ---------- 分组设置列表：图标 + 主文案 + 副文案 + 细线箭头 ---------- */
+
+.card.settings-list {
+  padding: 0 18px;
+}
+
+.settings-list > button {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 56px;
+  padding: 15px 0;
+  border-top: 1px solid var(--rule);
+  border-radius: var(--radius-xs);
+  color: var(--ink);
+  text-align: left;
+}
+
+.settings-list > button:first-child {
+  border-top: 0;
+}
+
+.settings-list > button > svg:first-child {
+  justify-self: center;
+  width: 18px;
+  height: 18px;
+  color: var(--ink-soft);
+  flex: 0 0 auto;
+}
+
+.settings-list > button > span {
+  min-width: 0;
+  display: block;
+}
+
+.settings-list .setting-title {
+  display: block;
+  color: var(--ink);
+  font-size: var(--fs-body);
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+}
+
+.settings-list small {
+  display: block;
+  margin-top: 3px;
+  color: var(--ink-faint);
+  font-size: var(--fs-caption);
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+}
+
+.settings-list .settings-arrow {
+  justify-self: end;
+  width: 16px;
+  height: 16px;
+  color: var(--ink-faint);
+  flex: 0 0 auto;
+}
+
+.settings-list > button:active {
+  background: var(--paper-sunken);
+}
+
+.settings-list > button:focus-visible {
+  outline: 2px solid var(--seal);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .settings-list > button:hover .setting-title {
+    color: var(--seal);
+  }
+
+  .settings-list.danger > button:hover .setting-title {
+    color: var(--danger);
+  }
+}
+
+/* 危险入口：只用朱砂文字，不铺红色块 */
+.card.settings-list.danger {
+  border-color: var(--rule-strong);
+}
+
+.settings-list.danger > button svg {
+  color: var(--danger);
+}
+
+.settings-list.danger .setting-title {
+  color: var(--danger);
+}
+
+.settings-list.danger small {
+  color: var(--ink-faint);
+}
+
+/* ---------- 外观与存储 ---------- */
+
+.card.appearance-card {
+  padding-bottom: 18px;
+}
+
+.appearance-card > .setting-label {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.setting-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  color: var(--ink);
+  font-size: var(--fs-body);
+}
+
+.setting-label > svg {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: var(--ink-soft);
+}
+
+.setting-label > span {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-body);
+  letter-spacing: 0.02em;
+}
+
+/* 纸凹下拉：覆盖 tokens 中的通栏宽度，收在右侧 */
+.setting-label select {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 48%;
+  min-height: 44px;
+  padding: 8px 10px;
+  font-size: var(--fs-small);
+}
+
+.storage-info {
+  margin-top: 6px;
+}
+
+.storage-info .setting-label {
+  min-height: 44px;
+  margin-top: 10px;
+}
+
+.storage-info .setting-label > span {
+  font-size: var(--fs-body);
+  font-weight: 500;
+}
+
+.storage-usage {
+  margin: 2px 0 8px;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  line-height: 1.7;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 定义列表式细线行（不依赖其他页面模块） */
+.data-row.storage-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: var(--fs-small);
+  line-height: 1.6;
+}
+
+.data-row.storage-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.data-row.storage-row > strong {
+  max-width: 66%;
+  color: var(--ink);
+  font-weight: 500;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.storage-info > .secondary {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  font-size: var(--fs-small);
+  letter-spacing: 0.04em;
+}
+
+/* ---------- 安装卡、缓存状态、备份警告 ---------- */
+
+.card.install-card {
+  padding: 20px;
+}
+
+.install-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.install-head h2 {
+  font-family: var(--serif);
+  font-size: var(--fs-h2);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.install-mark {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-xs);
+  background: var(--seal-soft);
+  color: var(--seal);
+}
+
+.install-guide {
+  margin-top: 14px;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  line-height: 1.8;
+}
+
+.install-note {
+  margin-top: 12px;
+  color: var(--ink-faint);
+  font-size: var(--fs-caption);
+  line-height: 1.75;
+}
+
+.install-card > .status-pill {
+  margin-top: 12px;
+}
+
+.install-card > .secondary {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 14px;
+  font-size: var(--fs-small);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-xs);
+  background: var(--paper-sunken);
+  color: var(--ink-soft);
+  font-size: var(--fs-caption);
+  line-height: 1.55;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+
+.status-pill::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+}
+
+.status-pill.ready {
+  border-color: var(--moss-soft);
+  background: var(--moss-soft);
+  color: var(--moss);
+}
+
+.status-pill.ready::before {
+  background: var(--moss);
+}
+
+.status-pill.stale {
+  border-color: var(--danger-soft);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.status-pill.stale::before {
+  background: var(--danger);
+}
+
+.storage-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--seal);
+  border-radius: var(--radius-xs);
+  background: var(--highlight);
+  color: var(--ink-soft);
+}
+
+.storage-warning > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--seal);
+}
+
+.storage-warning p {
+  margin: 0;
+  font-size: var(--fs-small);
+  line-height: 1.8;
+}
+
+/* ---------- 快速解锁模块 ---------- */
+
+.card.quick-unlock {
+  padding: 20px;
+}
+
+.quick-unlock h2 {
+  font-family: var(--serif);
+  font-size: var(--fs-h2);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.quick-unlock-intro {
+  margin-top: 10px;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  line-height: 1.8;
+}
+
+.quick-unlock-state {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+
+.quick-unlock-state .status-pill {
+  justify-self: start;
+}
+
+.quick-unlock-capability {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: var(--fs-caption);
+  line-height: 1.75;
+}
+
+.quick-unlock > .secondary {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 14px;
+  font-size: var(--fs-small);
+}
+
+.quick-unlock .danger-text {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+}
+
+.quick-unlock > .error,
+.quick-unlock > .success {
+  margin: 12px 0 0;
+}
+
+/* ---------- 记录偏好与装备：入口行 + 存储分析卡 ---------- */
+
+.card.journal-storage {
+  padding: 20px;
+}
+
+.journal-storage h2 {
+  font-family: var(--serif);
+  font-size: var(--fs-h2);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.card.journal-storage .journal-storage-note {
+  margin: 10px 0 14px;
+  color: var(--ink-faint);
+  font-size: var(--fs-small);
+  line-height: 1.8;
+}
+
+.journal-storage > .secondary {
+  min-height: 44px;
+  font-size: var(--fs-small);
+  letter-spacing: 0.04em;
+}
+
+.journal-storage > .settings-block {
+  margin-top: 16px;
+}
+
+.storage-months {
+  margin-top: 2px;
+}
+
+/* ---------- 弹层内通用表单块：无嵌套卡片，只用细线分隔 ---------- */
+
+.settings-sheet-form {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.settings-sheet-form .field {
+  margin: 0;
+}
+
+.settings-sheet-form > h3 {
+  margin: 4px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.03em;
+}
+
+.settings-sheet-form > h3 + .settings-hint {
+  margin-top: -6px;
+}
+
+.settings-fields {
+  display: grid;
+  gap: 14px;
+}
+
+.settings-note {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  line-height: 1.8;
+}
+
+.settings-hint {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: var(--fs-caption);
+  line-height: 1.75;
+}
+
+.settings-block {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.settings-warning-text {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--danger);
+  border-radius: var(--radius-xs);
+  background: var(--danger-soft);
+  color: var(--ink);
+  font-size: var(--fs-small);
+  line-height: 1.8;
+}
+
+.settings-sheet-form > .primary,
+.settings-sheet-form > .secondary,
+.settings-sheet-form > .danger-button {
+  min-height: 48px;
+}
+
+.settings-sheet-form > .secondary,
+.settings-sheet-form > .danger-button {
+  width: 100%;
+  font-size: var(--fs-small);
+  letter-spacing: 0.05em;
+}
+
+.settings-sheet-form > .text-button {
+  width: 100%;
+  min-height: 44px;
+}
+
+.settings-sheet-form > .muted,
+.settings-sheet-form > .error,
+.settings-sheet-form > .success {
+  margin: 0;
+}
+
+.settings-sheet-cancel {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+}
+
+/* 模板 / 装备编辑器：细线上方的表单块，不是嵌套卡片 */
+.settings-subform {
+  display: grid;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.settings-subform .field {
+  margin: 0;
+}
+
+.settings-subform > .secondary {
+  width: 100%;
+  min-height: 44px;
+  font-size: var(--fs-small);
+  letter-spacing: 0.05em;
+}
+
+.settings-subform > .text-button {
+  width: 100%;
+  min-height: 44px;
+}
+
+/* 模板 / 装备列表行：保留 .option-row 钩子，视觉按细线列表 */
+.settings-option-list {
+  display: grid;
+}
+
+.option-row.settings-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 6px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.option-row.settings-option:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+
+.settings-option-main {
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px 0;
+  color: var(--ink);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.settings-option-action {
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--ink-faint);
+  font-size: var(--fs-small);
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 4px;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .settings-option-main:hover {
+    color: var(--seal);
+  }
+
+  .settings-option-action:hover {
+    color: var(--seal);
+    text-decoration-color: var(--seal);
+  }
+}
+
+.settings-option-main:focus-visible,
+.settings-option-action:focus-visible {
+  outline: 2px solid var(--seal);
+  outline-offset: 2px;
+}
+
+/* ---------- 备份下载链接 ---------- */
+
+.backup-link {
+  display: block;
+  min-height: 44px;
+  padding: 10px 0;
+  color: var(--seal);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  line-height: 1.7;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 4px;
+  overflow-wrap: anywhere;
+}
+
+.backup-link:hover {
+  text-decoration-color: var(--seal);
+}
+
+.backup-link:focus-visible {
+  outline: 2px solid var(--seal);
+  outline-offset: 2px;
+}
+
+/* ---------- 恢复预览：苔绿便签 ---------- */
+
+.restore-preview {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--moss);
+  border-radius: var(--radius-xs);
+  background: var(--moss-soft);
+}
+
+.restore-preview h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.03em;
+}
+
+.restore-preview p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  line-height: 1.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.restore-preview .primary {
+  width: 100%;
+  min-height: 44px;
+  font-size: var(--fs-small);
+}
+
+/* ---------- 桌面：放大留白与触控 ---------- */
+
+@media (min-width: 650px) {
+  .settings-page .group-label {
+    margin-top: 38px;
+  }
+
+  .card.privacy-card {
+    gap: 20px;
+    padding: 24px;
+  }
+
+  .privacy-emblem {
+    width: 54px;
+    height: 54px;
+  }
+
+  .settings-list > button {
+    grid-template-columns: 24px minmax(0, 1fr) 20px;
+    gap: 16px;
+    padding: 17px 0;
+  }
+
+  .card.install-card,
+  .card.quick-unlock,
+  .card.journal-storage {
+    padding: 24px;
+  }
+
+  .settings-sheet-form {
+    gap: 18px;
+  }
+
+  .settings-subform {
+    gap: 16px;
+  }
+}
+
+/* ---------- 窄屏：不横向滚动 ---------- */
+
+@media (max-width: 360px) {
+  .card.settings-list {
+    padding: 0 14px;
+  }
+
+  .card.privacy-card {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .privacy-emblem {
+    width: 40px;
+    height: 40px;
+  }
+
+  .setting-label {
+    gap: 9px;
+  }
+
+  .setting-label select {
+    max-width: 50%;
+  }
+
+  .settings-list > button {
+    gap: 11px;
+  }
+
+  .storage-warning,
+  .settings-warning-text {
+    padding: 12px 13px;
+  }
+}
+
+/* ---------- 减少动态 ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .privacy-emblem {
+    transform: none;
+  }
+
+  .settings-list > button,
+  .settings-list .setting-title,
+  .settings-option-main,
+  .settings-option-action,
+  .backup-link {
+    transition: none;
+  }
+}

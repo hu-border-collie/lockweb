@@ -37,7 +37,9 @@ export const MAX_FATE_DRAWS = 20000;
 export const kindNames: Record<FateKind, string> = {
     reward: "奖励", neutral: "中性", extra: "加时", task: "任务",
 };
-export const FATE_COLORS = ["#5268d9", "#399888", "#bb8248", "#9870ba", "#ba607a", "#537f99"];
+export const FATE_COLORS = ["#A83A28", "#4F6B57", "#B07C3F", "#5B6480", "#7E5A6B", "#7A6A3F"];
+/** 今日仪式可转动时 ritualStatus 的唯一返回值，db 层与界面共用。 */
+export const RITUAL_READY = "今天的仪式已经点亮";
 export function fatePreset(hard = false, mode: FateMode = "ritual"): FateConfig {
     const items: [
         string,
@@ -46,7 +48,7 @@ export function fatePreset(hard = false, mode: FateMode = "ritual"): FateConfig 
         number
     ][] = hard
         ? [["准假小憩", "reward", 20, 0], ["追加 6 小时", "extra", 35, 360], ["追加 12 小时", "extra", 25, 720], ["追加 24 小时", "extra", 19, 1440], ["提前结束", "reward", 1, 0]]
-        : [["平安度过", "neutral", 50, 0], ["清洁小憩 30 分钟", "reward", 20, 0], ["细节打卡一张", "task", 20, 0], ["保养润肤", "task", 10, 0]];
+        : [["平安度过", "neutral", 50, 0], ["清洁小憩 30 分钟", "reward", 20, 0], ["补拍一张细节", "task", 20, 0], ["慢慢护理一下", "task", 10, 0]];
     return { name: hard ? "硬核加时博弈" : "温和日常", mode, slices: items.map(([label, kind, weight, extraMinutes], i) => ({
             id: `preset-${hard ? "hard" : "gentle"}-${i}`, label, kind, weight, extraMinutes, color: FATE_COLORS[i],
         })) };
@@ -128,10 +130,10 @@ export function pickFate(config: FateConfig): FateSlice {
 export function ritualStatus(state: FateState, entries: Entry[], now: number) {
     const day = dayKey(now);
     if (state.draws.some((d) => d.mode === "ritual" && d.day === day))
-        return "今日仪式已完成";
+        return "今天的仪式已经做过了";
     if (!entries.some((e) => e.photoIds.length > 0 && dayKey(e.timestamp) === day && dayKey(e.createdAt) === day))
-        return "先完成今日拍照打卡";
-    return "今日仪式已点亮";
+        return "今天先拍一张，再来转";
+    return RITUAL_READY;
 }
 export function fateNote(draw: FateDraw) {
     const extra = draw.slice.kind === "extra" ? `（追加 ${draw.slice.extraMinutes} 分钟）` : "";

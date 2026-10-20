@@ -1,0 +1,635 @@
+/* 命运轮盘 · 纸本手记
+   覆盖 FateWheel（弹层主体、结果便签、图例、配置编辑器）与 FateHistory（回顾页列表）。
+   只使用 tokens.css 中的设计令牌，不定义 :root；深色「夜读」由变量自动切换。 */
+
+/* ---------- 面板骨架 ---------- */
+
+.fate-panel {
+  display: block;
+  min-width: 0;
+}
+
+.fate-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.fate-heading-text {
+  min-width: 0;
+}
+
+.fate-heading .eyebrow {
+  color: var(--seal);
+}
+
+.fate-heading h3 {
+  margin-top: 5px;
+  font-family: var(--serif);
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+
+.fate-config-button {
+  flex: 0 0 auto;
+  margin: -6px -8px 0 0;
+  color: var(--ink-soft);
+}
+
+.fate-config-button:hover {
+  color: var(--seal);
+  background: var(--seal-soft);
+}
+
+/* ---------- 轮盘：纸盘 + 细线外圈 + 刻度 + 朱砂指针 ---------- */
+
+.fate-wheel-wrap {
+  position: relative;
+  width: min(100%, 320px);
+  margin: 20px auto 4px;
+  isolation: isolate;
+}
+
+.fate-wheel-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 3%;
+  border-radius: 50%;
+  box-shadow: var(--shadow);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.fate-wheel {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: auto;
+  will-change: transform;
+}
+
+/* 朱砂指针压在轮盘顶端，向下指向扇区 */
+.fate-pointer {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  z-index: 2;
+  width: 16px;
+  height: 22px;
+  transform: translateX(-50%);
+  background: var(--seal);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  pointer-events: none;
+}
+
+.fate-plate {
+  fill: var(--paper);
+}
+
+.fate-ring-outer,
+.fate-ring-inner {
+  fill: none;
+  stroke: var(--rule-strong);
+  stroke-width: 1;
+}
+
+.fate-ring-inner {
+  stroke: var(--rule);
+}
+
+/* 12 点刻度的短虚线，360° 均匀分布 */
+.fate-ticks-major {
+  fill: none;
+  stroke: var(--ink-faint);
+  stroke-width: 2;
+  stroke-dasharray: 2 77.59;
+}
+
+/* 60 分钟刻度的细密虚线 */
+.fate-ticks-minor {
+  fill: none;
+  stroke: var(--rule-strong);
+  stroke-width: 1;
+  stroke-dasharray: 1 14.39;
+}
+
+.fate-slice {
+  stroke: var(--paper);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+/* 扇区编号坐在纸色小圆片上，浅色/深色都可读 */
+.fate-slice-chip {
+  fill: var(--paper-raised);
+  stroke: var(--rule);
+  stroke-width: 0.5;
+}
+
+.fate-slice-number {
+  fill: var(--seal);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.fate-hub-disc {
+  fill: var(--paper-raised);
+  stroke: var(--rule-strong);
+  stroke-width: 1;
+}
+
+.fate-hub-seal {
+  fill: var(--seal);
+}
+
+.fate-hub-dot {
+  fill: var(--paper-raised);
+}
+
+/* ---------- 状态行与主按钮 ---------- */
+
+.fate-rule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 20px;
+  margin: 18px 0 16px;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: var(--fs-small);
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}
+
+.fate-rule::before,
+.fate-rule::after {
+  content: "";
+  flex: 0 1 26px;
+  min-width: 8px;
+  height: 1px;
+  background: var(--rule-strong);
+}
+
+.fate-spin {
+  margin: 0 0 18px;
+  letter-spacing: 0.08em;
+}
+
+.fate-error {
+  margin: 0 0 18px;
+}
+
+/* ---------- 结果便签条 ---------- */
+
+.fate-result {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 20px;
+  padding: 15px 16px 16px 18px;
+  background: var(--seal-soft);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--seal);
+  border-radius: var(--radius-xs);
+}
+
+.fate-result > .eyebrow {
+  color: var(--seal);
+}
+
+.fate-result h3 {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+}
+
+.fate-result h3 svg {
+  flex: 0 0 auto;
+  margin-top: 4px;
+  color: var(--seal);
+}
+
+.fate-result-meta {
+  font-family: var(--sans);
+  font-size: var(--fs-caption);
+  line-height: 1.6;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.fate-result-attached {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--fs-caption);
+  line-height: 1.6;
+  color: var(--moss);
+  letter-spacing: 0.02em;
+}
+
+.fate-result-attached::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--moss);
+}
+
+.fate-attach {
+  display: grid;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.fate-attach .field {
+  margin: 8px 0 10px;
+  gap: 6px;
+}
+
+.fate-attach .field select {
+  min-width: 0;
+}
+
+/* ---------- 扇区图例：编号 + 色点 + 名称 + 概率 细线列表 ---------- */
+
+.fate-legend {
+  display: block;
+  counter-reset: fate-number;
+  list-style: none;
+  margin: 4px 0 18px;
+  padding: 0;
+}
+
+.fate-legend li {
+  counter-increment: fate-number;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.fate-legend li:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+
+.fate-legend li::before {
+  content: counter(fate-number);
+  flex: 0 0 18px;
+  padding-top: 1px;
+  font-size: var(--fs-caption);
+  line-height: 1.6;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.fate-legend .fate-swatch {
+  margin-top: 5px;
+}
+
+.fate-legend-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.fate-legend-name small {
+  display: block;
+  margin-top: 3px;
+  font-size: var(--fs-caption);
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
+}
+
+.fate-legend-prob {
+  flex: 0 0 auto;
+  padding-top: 1px;
+  font-family: var(--sans);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fate-swatch {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--rule);
+}
+
+.fate-panel .fate-footnote {
+  margin: 0 0 6px;
+  font-size: var(--fs-caption);
+  line-height: 1.75;
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
+}
+
+/* ---------- 配置弹层：统一细线表单 ---------- */
+
+.fate-options {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fate-options .field {
+  margin: 16px 0 0;
+}
+
+.fate-options .field:first-child {
+  margin-top: 18px;
+}
+
+.fate-options .field small {
+  padding-top: 2px;
+  line-height: 1.7;
+}
+
+.fate-options-note {
+  margin: 14px 0 0;
+  font-size: var(--fs-caption);
+  line-height: 1.75;
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
+}
+
+.fate-preset-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0 0;
+}
+
+.fate-preset-buttons .secondary {
+  min-height: 44px;
+  padding-inline: 8px;
+  font-size: var(--fs-small);
+  letter-spacing: 0.04em;
+}
+
+.fate-slices {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 0;
+}
+
+.fate-slice-editor {
+  min-width: 0;
+  padding: 4px 14px 6px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+}
+
+.fate-slice-editor .section-line {
+  margin: 0;
+  padding: 8px 0 10px;
+  border-bottom: 1px dashed var(--rule);
+}
+
+.fate-slice-editor .section-line h3 {
+  font-family: var(--serif);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.fate-slice-editor .section-line .text-button {
+  min-height: 36px;
+  color: var(--seal);
+}
+
+.fate-slice-editor > .field {
+  margin: 12px 0 0;
+}
+
+.fate-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+}
+
+.fate-editor-grid .field {
+  margin: 12px 0 0;
+}
+
+.fate-editor-grid input,
+.fate-editor-grid select {
+  min-width: 0;
+  width: 100%;
+}
+
+.fate-editor-grid input[type="color"] {
+  min-height: 46px;
+  padding: 5px;
+  cursor: pointer;
+}
+
+.fate-add-slice {
+  margin: 14px 0 0;
+}
+
+.fate-options .error {
+  margin: 14px 0 0;
+}
+
+.fate-save {
+  margin: 18px 0 0;
+}
+
+/* ---------- 命运历史（回顾页卡片） ---------- */
+
+.fate-history {
+  min-width: 0;
+  margin-bottom: 16px;
+}
+
+.fate-history h2 {
+  font-family: var(--serif);
+  font-size: var(--fs-h2);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.fate-history-total {
+  margin: 6px 0 0;
+  font-size: var(--fs-caption);
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.fate-counts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 14px 0 18px;
+  padding: 13px 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.fate-counts span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 0 4px;
+  border-left: 1px solid var(--rule);
+  text-align: center;
+  font-size: var(--fs-caption);
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
+.fate-counts span:first-child {
+  border-left: 0;
+}
+
+.fate-counts strong {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.fate-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fate-timeline li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.fate-timeline .fate-swatch {
+  width: 8px;
+  height: 8px;
+  margin-top: 7px;
+}
+
+.fate-timeline li > div {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fate-timeline strong {
+  display: block;
+  font-family: var(--sans);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.fate-timeline small {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-caption);
+  line-height: 1.55;
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.fate-history .empty-line {
+  margin: 0;
+  padding: 22px 0 14px;
+  text-align: center;
+  font-size: var(--fs-small);
+  line-height: 1.7;
+  color: var(--ink-faint);
+}
+
+.fate-history .secondary.wide {
+  margin-top: 16px;
+}
+
+/* ---------- 桌面：放大留白与字号 ---------- */
+
+@media (min-width: 650px) {
+  .fate-wheel-wrap {
+    width: min(100%, 360px);
+    margin-top: 24px;
+  }
+
+  .fate-rule {
+    margin: 22px 0 20px;
+  }
+
+  .fate-result {
+    padding: 18px 20px 20px 22px;
+  }
+
+  .fate-result h3 {
+    font-size: 22px;
+  }
+
+  .fate-legend li {
+    padding: 12px 0;
+  }
+
+  .fate-slice-editor {
+    padding: 4px 18px 10px;
+  }
+
+  .fate-counts strong {
+    font-size: 26px;
+  }
+}
+
+/* ---------- 减少动效：不新增位移/缩放 ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .fate-wheel {
+    will-change: auto;
+  }
+
+  .fate-panel *,
+  .fate-history * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

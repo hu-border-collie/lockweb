@@ -24,7 +24,7 @@ function LiveWearTimer({ session }: { session?: WearSession }) {
   }, [session]);
 
   if (!session) {
-    return <div className="wear-timer">自由时刻</div>;
+    return <div className="wear-timer">尚未开始</div>;
   }
   return (
     <div className="wear-timer">
@@ -40,8 +40,8 @@ function LivePauseDuration({ pauseStart }: { pauseStart: number }) {
     return () => clearInterval(timer);
   }, []);
   return (
-    <p className="hero-start">
-      小憩已持续 {duration(now - pauseStart, true)} · 此段时间不计入佩戴
+    <p className="hero-start hero-pause">
+      小憩已持续 {duration(now - pauseStart, true)} · 这里不计入佩戴
     </p>
   );
 }
@@ -100,56 +100,79 @@ export const Home = memo(function Home({
     : undefined;
 
   const today = entries.filter((e) => dayKey(e.timestamp) === dayKey(now));
+  const recentPhotos = entries
+    .flatMap((e) => e.photoIds.map((p) => ({ p, e })))
+    .slice(0, 6);
   const activePause = active?.breaks?.at(-1);
 
   return (
     <>
-      <section className={`wear-hero ${active ? "active" : ""}`}>
+      <section
+        className={`wear-hero${active ? " active" : ""}${active && paused ? " paused" : ""}`}
+      >
         <div className="hero-top">
           <span className="state-label">
-            <i />
-            {active ? (paused ? "清洁小憩中" : "正在佩戴") : "当前未佩戴"}
+            <i aria-hidden="true" />
+            {active ? (paused ? "小憩中" : "正在佩戴") : "此刻未佩戴"}
           </span>
           <button className="hero-link" onClick={onOpenManage}>
-            时段管理
-            <ArrowUpRight size={16} />
+            时段
+            <ArrowUpRight size={15} aria-hidden="true" />
           </button>
         </div>
         <p className="hero-caption">
-          {active ? "本次已持续" : "按自己的节奏记录"}
+          {active ? "这一程，已经" : "按自己的节奏来"}
         </p>
         <LiveWearTimer session={active} />
         <p className="hero-start">
           {active
             ? `${dateTime(active.start)} 开始`
-            : "佩戴时段和拍照打卡独立保存"}
+            : "佩戴与记录分开保存，不用勉强。"}
         </p>
+        {active && paused && activePause && (
+          <LivePauseDuration pauseStart={activePause.start} />
+        )}
         {activeFate && (
           <p className="fate-session-badge">
-            🎲 {kindNames[activeFate.slice.kind]}判定：
+            🎲 命运判定 · {kindNames[activeFate.slice.kind]}：
             {activeFate.slice.label}
             {activeFate.slice.kind === "extra"
               ? ` · ${activeFate.slice.extraMinutes} 分钟`
               : ""}
-            <small>仅记录判定，实际计时照常</small>
+            <small>只是记下判定，计时照常</small>
           </p>
         )}
-        <button
-          className="hero-action"
-          disabled={busy || !ready}
-          onClick={() => void onToggleWear()}
-        >
-          {active ? "结束本次佩戴" : "开始佩戴"}
-          {active ? <Timer size={18} /> : <Plus size={19} />}
-        </button>
+        <div className={`hero-actions${active ? "" : " is-single"}`}>
+          <button
+            className="primary wide hero-action"
+            disabled={busy || !ready}
+            onClick={() => void onToggleWear()}
+          >
+            {active ? "结束佩戴" : "开始佩戴"}
+            {active ? (
+              <Timer size={18} aria-hidden="true" />
+            ) : (
+              <Plus size={19} aria-hidden="true" />
+            )}
+          </button>
+          {active && (
+            <button
+              className="secondary wide"
+              disabled={busy}
+              onClick={() => void onTogglePause()}
+            >
+              {paused ? "继续佩戴" : "清洁小憩"}
+            </button>
+          )}
+        </div>
         {!active && settings.gears.some((g) => !g.archived) && (
-          <label className="field">
-            本次佩戴装备
+          <label className="field hero-gear">
+            这次的装备
             <select
               value={gearId}
               onChange={(e) => setGearId(e.target.value)}
             >
-              <option value="">不选择装备</option>
+              <option value="">不选装备</option>
               {settings.gears
                 .filter((g) => !g.archived)
                 .map((g) => (
@@ -160,32 +183,18 @@ export const Home = memo(function Home({
             </select>
           </label>
         )}
-        {active && (
-          <>
-            <button
-              className="secondary wide"
-              disabled={busy}
-              onClick={() => void onTogglePause()}
-            >
-              {paused ? "恢复佩戴" : "清洁小憩"}
-            </button>
-            {paused && activePause && (
-              <LivePauseDuration pauseStart={activePause.start} />
-            )}
-          </>
-        )}
       </section>
 
       <div className="home-metrics">
         <div>
-          <span>今日打卡</span>
+          <span>今天记了</span>
           <strong>
             {today.length}
-            <small> 次</small>
+            <small> 笔</small>
           </strong>
         </div>
         <div>
-          <span>最近一次</span>
+          <span>最近一笔</span>
           <strong className="time-metric">
             {entries.length ? clock(entries[0].timestamp) : "—"}
             <small>
@@ -193,12 +202,12 @@ export const Home = memo(function Home({
                 ? dayKey(entries[0].timestamp) === dayKey(now)
                   ? " 今天"
                   : " " + dayKey(entries[0].timestamp).slice(5)
-                : " 尚未打卡"}
+                : " 还没记"}
             </small>
           </strong>
         </div>
         <div>
-          <span>连续打卡</span>
+          <span>连续记录</span>
           <strong>
             {totals.current}
             <small> 天</small>
@@ -210,29 +219,29 @@ export const Home = memo(function Home({
         className="quick-capture"
         onClick={() => onNavigate("checkin")}
       >
-        <span>
-          <Camera size={25} />
+        <span className="quick-capture-icon" aria-hidden="true">
+          <Camera size={22} strokeWidth={1.6} />
         </span>
-        <div>
-          <strong>拍照打卡</strong>
-          <small>拍一张，或选几张。保存就好。</small>
-        </div>
-        <ChevronRight size={19} />
+        <span className="quick-capture-text">
+          <strong>拍一张</strong>
+          <small>照片和这一刻，都留给自己。</small>
+        </span>
+        <ChevronRight size={18} aria-hidden="true" />
       </button>
 
-      <button className="fate-launch card" onClick={onOpenWheel}>
+      <button className="fate-launch" onClick={onOpenWheel}>
         <span className="fate-launch-icon" aria-hidden="true">
-          🎲
+          命
         </span>
-        <span>
+        <span className="fate-launch-text">
           <strong>命运轮盘</strong>
           <small>
             {fate.config.mode === "free"
-              ? "自由沙盒 · 随时开启"
+              ? "自由模式 · 随时能转"
               : ritualStatus(fate, entries, now)}
           </small>
         </span>
-        <ChevronRight size={19} />
+        <ChevronRight size={18} aria-hidden="true" />
       </button>
 
       <div className="section-line">
@@ -241,39 +250,36 @@ export const Home = memo(function Home({
           className="text-button"
           onClick={() => onNavigate("calendar")}
         >
-          查看全部
-          <ChevronRight size={14} />
+          看全部
+          <ChevronRight size={14} aria-hidden="true" />
         </button>
       </div>
 
-      {entries.length ? (
+      {recentPhotos.length ? (
         <div className="recent-grid">
-          {entries
-            .flatMap((e) => e.photoIds.map((p) => ({ p, e })))
-            .slice(0, 6)
-            .map(({ p, e }) => (
-              <div key={p}>
-                <Photo
-                  id={p}
-                  vault={vault}
-                  onClick={() => onView(e.photoIds, e.photoIds.indexOf(p))}
-                />
-                <span>{dateTime(e.timestamp)}</span>
-              </div>
-            ))}
+          {recentPhotos.map(({ p, e }) => (
+            <div className="recent-photo" key={p}>
+              <Photo
+                id={p}
+                vault={vault}
+                onClick={() => onView(e.photoIds, e.photoIds.indexOf(p))}
+              />
+              <span>{dateTime(e.timestamp)}</span>
+            </div>
+          ))}
         </div>
       ) : (
-        <div className="card">
+        <div className="card recent-empty">
           <Empty
             title="从第一张照片开始"
-            detail="日常的每一个瞬间，都值得被自己记住。"
+            detail="随手拍下的，都是自己的日子。"
           />
         </div>
       )}
 
       <div className="section-line">
-        <h2>今日记录</h2>
-        <span className="muted">{today.length} 次</span>
+        <h2>今天写下的</h2>
+        <span className="muted">{today.length} 笔</span>
       </div>
 
       {today.length ? (
@@ -287,7 +293,9 @@ export const Home = memo(function Home({
           />
         ))
       ) : (
-        <p className="muted empty-line">今天的记录会出现在这里。</p>
+        <p className="muted empty-line">
+          今天的记录，会一页页出现在这里。
+        </p>
       )}
     </>
   );
