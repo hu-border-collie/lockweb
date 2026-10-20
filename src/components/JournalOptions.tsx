@@ -28,11 +28,6 @@ export function JournalOptions({
   const [tags, setTags] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [storage, setStorage] = useState<Awaited<
-    ReturnType<Vault["storageAnalysis"]>
-  > | null>(null);
-  const [storageBusy, setStorageBusy] = useState(false);
-  const [storageError, setStorageError] = useState("");
   return (
     <>
       <h3 className="group-label">记录偏好与装备</h3>
@@ -60,53 +55,6 @@ export function JournalOptions({
             aria-hidden="true"
           />
         </button>
-      </div>
-      <div className="card journal-storage">
-        <h2>照片存储分析</h2>
-        <p className="muted journal-storage-note">
-          按月份统计加密原图和缩略图占用的字节数，不包含索引和应用缓存。不会压缩或删除照片。
-        </p>
-        <button
-          className="secondary"
-          disabled={storageBusy}
-          onClick={async () => {
-            setStorageBusy(true);
-            setStorageError("");
-            try {
-              setStorage(await vault.storageAnalysis());
-            } catch (e) {
-              setStorageError(userError(e));
-            } finally {
-              setStorageBusy(false);
-            }
-          }}
-        >
-          {storageBusy ? "正在算…" : "分析照片占用"}
-        </button>
-        {storageError && (
-          <p className="error" role="alert">
-            {storageError}
-          </p>
-        )}
-        {storage && (
-          <div className="settings-block">
-            <p className="muted">本次分析结果 · 数据变化后请重新分析</p>
-            {storage.length ? (
-              <div className="storage-months">
-                {storage.map((m) => (
-                  <div className="data-row storage-row" key={m.month}>
-                    <span>
-                      {m.month} · {m.count} 张
-                    </span>
-                    <strong>{(m.bytes / 1024 / 1024).toFixed(2)} MB</strong>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="muted">还没有照片</p>
-            )}
-          </div>
-        )}
       </div>
       {draft && (
         <Modal

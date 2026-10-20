@@ -489,6 +489,21 @@
 .storage-months {
   margin-top: 2px;
 }
+.storage-month meter {
+  display: block;
+  width: 100%;
+  height: 10px;
+  accent-color: var(--moss);
+}
+.storage-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 44px;
+  margin: 18px 0;
+  line-height: 1.8;
+}
+.storage-confirm input { width: 22px; height: 22px; flex: 0 0 auto; }
 
 /* ---------- 弹层内通用表单块：无嵌套卡片，只用细线分隔 ---------- */
 

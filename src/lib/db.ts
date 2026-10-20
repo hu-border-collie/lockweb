@@ -191,6 +191,15 @@ export class Vault {
       },
     );
   }
+  async assertRevision(revision: number) {
+    await this.database.transaction("r", this.database.meta, async () => {
+      if (
+        (await getConfig(this.database))?.id !== this.config.id ||
+        ((await this.database.meta.get("revision"))?.value ?? 0) !== revision
+      )
+        throw new Error("记录或保险库已改变，请重新备份并分析");
+    });
+  }
   async saveEntry(entry: Entry, photos: PhotoInput[], revision: number) {
     const snap = await this.snapshot();
     validateLinks([entry], snap.sessions, snap.settings);
@@ -320,6 +329,36 @@ export class Vault {
       ],
       { type: "image/jpeg" },
     );
+  }
+  // Crypto and image work happens before the short write transaction.
+  // Keep both JPEG slots valid so viewers, editing and all backup versions work.
+  async archivePhoto(
+    id: string,
+    ownerId: string,
+    full: Blob,
+    revision: number,
+    signal?: AbortSignal,
+  ) {
+    const check = () => signal?.throwIfAborted();
+    check();
+    const sealed = await seal(
+      this.key,
+      new Uint8Array(await full.arrayBuffer()),
+      `photo:${id}`,
+    );
+    check();
+    let saved = 0;
+    await this.mutate(revision, async () => {
+      check();
+      const row = await this.database.photos.get(id);
+      if (!row || row.ownerId !== ownerId)
+        throw new Error("照片已改变，请重新分析");
+      saved = row.full.data.byteLength - sealed.data.byteLength;
+      if (saved <= 0) throw new Error("归档结果没有节省空间");
+      await this.database.photos.put({ ...row, full: sealed });
+      check();
+    });
+    return saved;
   }
   async changePassword(password: string, revision: number) {
     const { config } = await makeVault(password, this.key, this.config.id);
