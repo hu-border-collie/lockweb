@@ -46,7 +46,10 @@ export function StorageManager({
     };
   }, [vault]);
   useEffect(() => {
-    controller.current?.abort();
+    // Our own commits also refresh the parent's revision via storagemutated.
+    // The running batch validates its expected revision before every write;
+    // only explicit stop/unmount aborts it. External writes fail that check.
+    if (controller.current) return;
     setPlan(null);
     setConfirmed(false);
   }, [revision, vault]);

@@ -68,7 +68,13 @@ for (const mode of ["compressed", "thumbnail"] as const) {
       await nav(page, "记录");
       await page
         .getByLabel("从相册选择照片")
-        .setInputFiles({ name: "photo.jpg", mimeType: "image/jpeg", buffer });
+        .setInputFiles(
+          Array.from({ length: old ? 2 : 1 }, () => ({
+            name: "photo.jpg",
+            mimeType: "image/jpeg",
+            buffer,
+          })),
+        );
       await expect(
         page.getByRole("button", { name: "收进今天", exact: true }),
       ).toBeEnabled();
@@ -86,7 +92,7 @@ for (const mode of ["compressed", "thumbnail"] as const) {
     }
     await nav(page, "设置");
     await page.getByRole("button", { name: "分析照片占用" }).click();
-    await expect(page.getByText("2020-01 · 1 张")).toBeVisible();
+    await expect(page.getByText("2020-01 · 2 张")).toBeVisible();
     await expect(
       page.getByRole("meter", { name: "2020-01 照片占用" }),
     ).toBeVisible();
@@ -135,7 +141,7 @@ for (const mode of ["compressed", "thumbnail"] as const) {
     await page.getByLabel("归档方式").selectOption(mode);
     await page.getByRole("button", { name: "查看归档范围" }).click();
     await expect(
-      page.getByRole("button", { name: "确认归档 1 张", exact: true }),
+      page.getByRole("button", { name: "确认归档 2 张", exact: true }),
     ).toBeDisabled();
     await page.screenshot({
       path: info.outputPath("archive-confirmation.png"),
@@ -146,10 +152,10 @@ for (const mode of ["compressed", "thumbnail"] as const) {
     await page.getByRole("button", { name: "查看归档范围" }).click();
     await page.getByRole("checkbox", { name: /我已把当前完整备份/ }).check();
     await page
-      .getByRole("button", { name: "确认归档 1 张", exact: true })
+      .getByRole("button", { name: "确认归档 2 张", exact: true })
       .click();
     await expect(
-      page.getByText(/归档完成：处理 1 张，缩小 1 张/),
+      page.getByText(/归档完成：处理 2 张，缩小 2 张/),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "查看归档范围" }),
@@ -169,24 +175,23 @@ for (const mode of ["compressed", "thumbnail"] as const) {
     await page.getByRole("button", { name: "查看归档范围" }).click();
     await page.getByRole("checkbox", { name: /我已把当前完整备份/ }).check();
     await page
-      .getByRole("button", { name: "确认归档 1 张", exact: true })
+      .getByRole("button", { name: "确认归档 2 张", exact: true })
       .click();
     await expect(
-      page.getByText(/归档完成：处理 1 张，缩小 0 张/),
+      page.getByText(/归档完成：处理 2 张，缩小 0 张/),
     ).toBeVisible();
     expect(await dimensions(page)).toEqual([
+      mode === "compressed" ? 1600 : 360,
       mode === "compressed" ? 1600 : 360,
       2400,
     ]);
     await nav(page, "设置");
     await page.getByRole("button", { name: "用备份恢复" }).click();
-    await page
-      .getByLabel("选择备份文件")
-      .setInputFiles({
-        name: "original.plog",
-        mimeType: "application/octet-stream",
-        buffer: Buffer.from(bytes),
-      });
+    await page.getByLabel("选择备份文件").setInputFiles({
+      name: "original.plog",
+      mimeType: "application/octet-stream",
+      buffer: Buffer.from(bytes),
+    });
     await page.getByLabel("备份密码", { exact: true }).fill("backup-password");
     await page.getByRole("button", { name: "检查备份" }).click();
     await expect(page.getByText("备份检查通过", { exact: true })).toBeVisible();
@@ -195,7 +200,7 @@ for (const mode of ["compressed", "thumbnail"] as const) {
       page.getByText("记录和照片已经完整恢复。", { exact: true }),
     ).toBeVisible();
     await page.getByRole("button", { name: "关闭", exact: true }).click();
-    expect(await dimensions(page)).toEqual([2400, 2400]);
+    expect(await dimensions(page)).toEqual([2400, 2400, 2400]);
     expect(errors).toEqual([]);
   });
 }
