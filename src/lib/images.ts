@@ -37,6 +37,13 @@ async function jpeg(img: HTMLImageElement, max: number, quality: number) {
   canvas.width = canvas.height = 1;
   return result;
 }
+// Explicitly lossy archival preset; never overwrite with a larger encoding.
+export async function compressArchiveImage(blob: Blob): Promise<Blob> {
+  const img = await load(blob);
+  // Do not repeatedly recompress an already-small (possibly archived) image.
+  if (Math.max(img.naturalWidth, img.naturalHeight) <= 1600) return blob;
+  return jpeg(img, 1600, 0.78);
+}
 export async function processImage(file: File): Promise<PhotoInput> {
   if (file.size > 40 * 1024 * 1024)
     throw new Error("单张照片超过 40 MB，请先缩小照片");

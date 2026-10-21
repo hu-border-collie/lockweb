@@ -19,6 +19,7 @@ import { userError } from "../lib/db";
 import { exportBackup, importBackup, type BackupData } from "../lib/backup";
 import { Modal } from "./Shared";
 import { JournalOptions } from "./JournalOptions";
+import { StorageManager } from "./StorageManager";
 import { BiometricSettings } from "./BiometricSettings";
 import type { JournalSettings } from "../lib/models";
 export type Theme = "system" | "light" | "dark";
@@ -91,7 +92,8 @@ export function Settings({
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [backup, setBackup] = useState<{ url: string; file: File } | null>(
+  const [backupReceipt, setBackupReceipt] = useState<{ vault: Vault; revision: number } | null>(null);
+  const [backup, setBackup] = useState<{ url: string; file: File; revision: number } | null>(
     null,
   );
   const [usage, setUsage] = useState<{
@@ -152,6 +154,7 @@ export function Settings({
           files: [backup.file],
           title: "私记 · 加密备份",
         });
+        setBackupReceipt({ vault, revision: backup.revision });
       } catch (e) {
         if ((e as Error).name !== "AbortError")
           setError("系统分享没能打开，可以用下面的下载链接。");
@@ -164,6 +167,7 @@ export function Settings({
       a.href = backup.url;
       a.download = backup.file.name;
       a.click();
+      setBackupReceipt({ vault, revision: backup.revision });
     }
   }
   const bytes = (n?: number) =>
@@ -234,6 +238,13 @@ export function Settings({
         settings={settings}
         revision={revision}
         refresh={refresh}
+      />
+      <StorageManager
+        vault={vault}
+        revision={revision}
+        refresh={refresh}
+        backupRevision={backupReceipt?.vault === vault ? backupReceipt.revision : undefined}
+        onBackup={() => openPanel("export")}
       />
       <div className="card appearance-card">
         <label className="setting-label">
@@ -371,12 +382,13 @@ export function Settings({
                       if (password !== confirmPassword)
                         throw new Error("两次输入的备份密码不一样。");
                       const blob = await exportBackup(vault, password);
+                      await vault.assertRevision(revision);
                       const f = new File(
                         [blob],
                         `private-log-${new Date().toISOString().slice(0, 10)}.plog`,
                         { type: "application/octet-stream" },
                       );
-                      setBackup({ file: f, url: URL.createObjectURL(blob) });
+                      setBackup({ file: f, url: URL.createObjectURL(blob), revision });
                       setPassword("");
                       setConfirmPassword("");
                       setMessage(
@@ -400,6 +412,10 @@ export function Settings({
                       className="backup-link"
                       href={backup.url}
                       download={backup.file.name}
+                      onClick={() => {
+                        beginSystemDialog();
+                        setBackupReceipt({ vault, revision: backup.revision });
+                      }}
                     >
                       直接下载 {backup.file.name}
                     </a>
