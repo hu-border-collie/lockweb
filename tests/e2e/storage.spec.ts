@@ -53,7 +53,7 @@ for (const mode of ["compressed", "thumbnail"] as const) {
     await page.goto("/");
     await page.getByLabel("设置密码").fill("test-password");
     await page.getByLabel("确认密码", { exact: true }).fill("test-password");
-    await page.getByRole("button", { name: "创建并进入" }).click();
+    await page.getByRole("button", { name: "创建" }).click();
     await nav(page, "设置");
     await expect(
       page.getByText("已缓存，可离线使用", { exact: true }),
@@ -79,7 +79,7 @@ for (const mode of ["compressed", "thumbnail"] as const) {
         page.getByRole("button", { name: "保存记录", exact: true }),
       ).toBeEnabled();
       if (old) await page.getByLabel("记录时间").fill("2020-01-15T12:00");
-      await page.getByRole("button", { name: /填写备注、标签与评分/ }).click();
+      await page.getByRole("button", { name: /备注、标签和状态/ }).click();
       await page
         .getByLabel("备注", { exact: true })
         .fill(old ? "保留旧记录" : "保留新记录");

@@ -9,7 +9,7 @@ test("offline journal tools: encrypted preferences, breaks, redaction, stealth, 
   await page.goto("/");
   await page.getByLabel("设置密码").fill("test-password");
   await page.getByLabel("确认密码", { exact: true }).fill("test-password");
-  await page.getByRole("button", { name: "创建并进入" }).click();
+  await page.getByRole("button", { name: "创建" }).click();
   const nav = async (name: string) =>
     page
       .getByRole("navigation")
@@ -32,7 +32,7 @@ test("offline journal tools: encrypted preferences, breaks, redaction, stealth, 
   await page.getByRole("button", { name: "保存" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await nav("首页");
-  await page.getByLabel("本次装备").selectOption({ label: "测试装备" });
+  await page.getByLabel("装备").selectOption({ label: "测试装备" });
   await page.getByRole("button", { name: "开始佩戴", exact: true }).click();
   await page.getByRole("button", { name: "暂停", exact: true }).click();
   await expect(page.getByText("已暂停", { exact: true })).toBeVisible();
@@ -248,7 +248,7 @@ test("keeps a comparison selection when choosing a photo in another month", asyn
   await page.goto("/");
   await page.getByLabel("设置密码").fill("test-password");
   await page.getByLabel("确认密码", { exact: true }).fill("test-password");
-  await page.getByRole("button", { name: "创建并进入" }).click();
+  await page.getByRole("button", { name: "创建" }).click();
   const dates = await page.evaluate(() => {
     const today = new Date(),
       previous = new Date();

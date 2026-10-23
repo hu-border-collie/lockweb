@@ -5,7 +5,7 @@ async function create(page: Page) {
   await page.goto("/");
   await page.getByLabel("设置密码").fill("test-password");
   await page.getByLabel("确认密码", { exact: true }).fill("test-password");
-  await page.getByRole("button", { name: "创建并进入" }).click();
+  await page.getByRole("button", { name: "创建" }).click();
   await expect(page.getByRole("button", { name: "开始佩戴", exact: true })).toBeVisible();
 }
 
@@ -26,9 +26,9 @@ async function addPhotos(page: Page, count = 1) {
 test("dragging a draft onto the backdrop preserves it; a backdrop click closes", async ({ page }) => {
   await page.setViewportSize({ width: 1000, height: 1000 });
   await create(page);
-  await page.getByRole("button", { name: "时段管理" }).click();
-  await page.getByRole("button", { name: "补记时段" }).click();
-  const dialog = page.getByRole("dialog", { name: "补记时段", exact: true });
+  await page.getByRole("button", { name: "佩戴时段" }).click();
+  await page.getByRole("button", { name: "补录时段" }).click();
+  const dialog = page.getByRole("dialog", { name: "补录时段", exact: true });
   const note = dialog.locator("textarea");
   await note.fill("尚未保存的备注");
   // Wait for the sheet's entrance animation before taking pointer coordinates.

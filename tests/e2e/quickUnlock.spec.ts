@@ -7,7 +7,7 @@ const homeTab = (page: Page) =>
 async function create(page: Page) {
   await page.getByLabel("设置密码").fill("test-password");
   await page.getByLabel("确认密码", { exact: true }).fill("test-password");
-  await page.getByRole("button", { name: "创建并进入" }).click();
+  await page.getByRole("button", { name: "创建" }).click();
   await expect(
     homeTab(page),
   ).toHaveAttribute("aria-current", "page");
@@ -94,10 +94,10 @@ for (const hours of [0, 24]) {
     await context.setOffline(true);
     await page.reload();
     await expect(
-      page.getByRole("button", { name: "用面容 / 指纹解锁", exact: true }),
+      page.getByRole("button", { name: "面容 / 指纹解锁", exact: true }),
     ).toBeEnabled();
     await page
-      .getByRole("button", { name: "用面容 / 指纹解锁", exact: true })
+      .getByRole("button", { name: "面容 / 指纹解锁", exact: true })
       .click();
     await expect(
       homeTab(page),
@@ -108,7 +108,7 @@ for (const hours of [0, 24]) {
       enabled: false,
     });
     await page
-      .getByRole("button", { name: "用面容 / 指纹解锁", exact: true })
+      .getByRole("button", { name: "面容 / 指纹解锁", exact: true })
       .click();
     await page.getByRole("button", { name: "取消解锁", exact: true }).click();
     await cdp.send("WebAuthn.setAutomaticPresenceSimulation", {
@@ -146,7 +146,7 @@ for (const hours of [0, 24]) {
       await page.getByRole("button", { name: "锁定应用", exact: true }).click();
       await page.reload();
       await page
-        .getByRole("button", { name: "用面容 / 指纹解锁", exact: true })
+        .getByRole("button", { name: "面容 / 指纹解锁", exact: true })
         .click();
       await expect(
         homeTab(page),
@@ -167,7 +167,7 @@ for (const hours of [0, 24]) {
     ).toHaveCount(0);
     await page.getByRole("button", { name: "锁定应用", exact: true }).click();
     await expect(
-      page.getByRole("button", { name: "用面容 / 指纹解锁", exact: true }),
+      page.getByRole("button", { name: "面容 / 指纹解锁", exact: true }),
     ).toHaveCount(0);
     await page.getByLabel("密码", { exact: true }).fill("new-password");
     await page.getByRole("button", { name: "解锁", exact: true }).click();

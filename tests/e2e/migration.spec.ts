@@ -8,7 +8,7 @@ test("opens a populated v4 vault after an atomic store migration", async ({
   await page.goto("/");
   await page.getByLabel("设置密码").fill("migration-password");
   await page.getByLabel("确认密码", { exact: true }).fill("migration-password");
-  await page.getByRole("button", { name: "创建并进入" }).click();
+  await page.getByRole("button", { name: "创建" }).click();
   await page.getByRole("button", { name: "开始佩戴", exact: true }).click();
   await page.getByRole("button", { name: "暂停", exact: true }).click();
   await expect(page.getByText("已暂停", { exact: true })).toBeVisible();
@@ -24,7 +24,7 @@ test("opens a populated v4 vault after an atomic store migration", async ({
   await expect(
     page.getByRole("button", { name: "保存记录", exact: true }),
   ).toBeEnabled();
-  await page.getByRole("button", { name: "填写备注、标签与评分" }).click();
+  await page.getByRole("button", { name: /备注、标签和状态/ }).click();
   await page
     .getByRole("textbox", { name: "备注", exact: true })
     .fill("migration control");

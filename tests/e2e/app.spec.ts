@@ -11,7 +11,7 @@ async function unlock(page: import("@playwright/test").Page) {
 async function create(page: import("@playwright/test").Page) {
   await page.getByLabel("设置密码").fill("test-password");
   await page.getByLabel("确认密码", { exact: true }).fill("test-password");
-  await page.getByRole("button", { name: "创建并进入" }).click();
+  await page.getByRole("button", { name: "创建" }).click();
 }
 async function add(page: import("@playwright/test").Page, count = 1) {
   await page
@@ -59,8 +59,8 @@ test("complete offline acceptance: multiple checkins, reopen, views, wear time, 
   await add(page);
   await page.getByRole("button", { name: "开始佩戴", exact: true }).click();
   await expect(page.getByText("正在佩戴", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "时段管理" }).click();
-  await page.getByRole("button", { name: "补记时段" }).click();
+  await page.getByRole("button", { name: "佩戴时段" }).click();
+  await page.getByRole("button", { name: "补录时段" }).click();
   await page.getByLabel("仍在佩戴").uncheck();
   const current = new Date();
   const start = new Date(current);
@@ -186,7 +186,7 @@ test("edit and delete photos, password lock, responsive dark appearance", async 
     .locator("article.record")
     .getByRole("button", { name: /编辑/ })
     .click();
-  await page.getByRole("button", { name: "移除已保存照片" }).first().click();
+  await page.getByRole("button", { name: "移除照片" }).first().click();
   await page.getByLabel("备注", { exact: true }).fill("edited");
   // Hold input focus across two real one-second UI ticks.
   await page.waitForTimeout(2100);

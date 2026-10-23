@@ -5,7 +5,7 @@ async function setup(page: Page) {
     await page.goto("/");
     await page.getByLabel("设置密码").fill("test-password");
     await page.getByLabel("确认密码", { exact: true }).fill("test-password");
-    await page.getByRole("button", { name: "创建并进入" }).click();
+    await page.getByRole("button", { name: "创建" }).click();
     await expect(page.getByRole("button", { name: "命运轮盘" })).toBeVisible();
 }
 async function nav(page: Page, name: string) {
@@ -30,7 +30,7 @@ test("offline ritual requires a photo, persists cooldown and appends one result 
     await page.getByRole("dialog", { name: "命运轮盘", exact: true }).getByRole("button", { name: "关闭", exact: true }).click();
     await nav(page, "记录");
     await page.getByLabel("从相册选择照片").setInputFiles(path.resolve("tests/fixture.jpg"));
-    await page.getByRole("button", { name: /填写备注、标签与评分/ }).click();
+    await page.getByRole("button", { name: /备注、标签和状态/ }).click();
     await page.getByLabel("备注", { exact: true }).fill("原有备注");
     await expect(page.getByRole("button", { name: "保存记录", exact: true })).toBeEnabled();
     await page.getByRole("button", { name: "保存记录", exact: true }).click();

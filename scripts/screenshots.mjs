@@ -48,7 +48,7 @@ const T = old
       shotName: "old",
     }
   : {
-      create: ["创建并进入"],
+      create: ["创建"],
       password: "设置密码",
       confirm: "确认密码",
       home: "首页",
@@ -59,9 +59,9 @@ const T = old
       startWear: "开始佩戴",
       pause: "暂停",
       resume: "继续佩戴",
-      manage: "时段管理",
-      addSession: "补记时段",
-      details: "填写备注、标签与评分",
+      manage: "佩戴时段",
+      addSession: "补录时段",
+      details: "备注、标签和状态",
       save: "保存记录",
       wheel: "命运轮盘",
       compare: "对比照片",
