@@ -180,7 +180,7 @@ describe("journal extensions", () => {
         breaks: [{ start: now - 600000, end: null }],
       };
     expect(totalWear([s], now)).toBe(3000000);
-    expect(() => validateSession({ ...s, end: now })).toThrow("小憩");
+    expect(() => validateSession({ ...s, end: now })).toThrow("暂停");
     expect(() =>
       validateSession({ ...s, breaks: [{ start: s.start - 1, end: now }] }),
     ).toThrow();

@@ -28,7 +28,7 @@ const PANEL_TITLES: Record<string, string> = {
   export: "导出加密备份",
   import: "从备份恢复",
   password: "更换密码",
-  clear: "清空手记",
+  clear: "清空所有记录",
 };
 
 function SettingRow({
@@ -170,8 +170,11 @@ export function Settings({
       setBackupReceipt({ vault, revision: backup.revision });
     }
   }
-  const bytes = (n?: number) =>
-    n === undefined ? "系统未提供" : `${(n / 1024 / 1024).toFixed(1)} MB`;
+  const bytes = (n?: number) => {
+    if (n === undefined) return "系统未提供";
+    const mb = n / 1024 / 1024;
+    return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb.toFixed(1)} MB`;
+  };
   const feedback = (
     <>
       {busy && (
@@ -200,7 +203,7 @@ export function Settings({
         <div className="privacy-copy">
           <h2>隐私与加密</h2>
           <p>
-            记录和照片都锁在这台设备里。没有账号，没有上传，没有广告，也没有人跟踪你。
+            记录和照片加密保存在本机。没有账号，不上传数据，没有广告和跟踪。
           </p>
         </div>
       </section>
@@ -208,30 +211,29 @@ export function Settings({
       <div className="card settings-list">
         <SettingRow
           icon={<Lock size={18} strokeWidth={1.5} aria-hidden="true" />}
-          title="现在合上"
-          hint="切到后台超过 1 分钟会自动合上"
+          title="立即锁定"
+          hint="切到后台超过 1 分钟自动锁定"
           onClick={() => lock()}
         />
         <SettingRow
           icon={<ShieldCheck size={18} strokeWidth={1.5} aria-hidden="true" />}
           title="更换密码"
-          hint="密码丢了找不回来，记得备份"
+          hint="密码无法找回，请保留备份"
           onClick={() => openPanel("password")}
         />
         <SettingRow
           icon={<Download size={18} strokeWidth={1.5} aria-hidden="true" />}
-          title="导出一份加密备份"
-          hint="照片、缩略图和记录都在里面"
+          title="导出加密备份"
+          hint="包含全部照片、缩略图和记录"
           onClick={() => openPanel("export")}
         />
         <SettingRow
           icon={<Upload size={18} strokeWidth={1.5} aria-hidden="true" />}
-          title="用备份恢复"
-          hint="先检查，再覆盖现在的记录"
+          title="从备份恢复"
+          hint="先校验，再覆盖当前数据"
           onClick={() => openPanel("import")}
         />
       </div>
-      <h3 className="group-label">设备与偏好</h3>
       <BiometricSettings vault={vault} revision={revision} refresh={refresh} />
       <JournalOptions
         vault={vault}
@@ -269,11 +271,11 @@ export function Settings({
             已使用 {bytes(usage.used)} · 可用配额 {bytes(usage.quota)}
           </p>
           <div className="data-row storage-row">
-            <span>长期保留</span>
+            <span>持久存储</span>
             <strong>
               {usage.persistent
-                ? "系统已经答应长期保留"
-                : "还没拿到长期保留的保障"}
+                ? "已获得持久存储"
+                : "未获得持久存储"}
             </strong>
           </div>
           <button
@@ -284,13 +286,13 @@ export function Settings({
                 await estimate();
                 setMessage(
                   allowed
-                    ? "已经拿到长期保留，仍请定期备份。"
-                    : "系统没有答应，或不支持长期保留，请定期备份。",
+                    ? "已获得持久存储，仍需定期备份"
+                    : "系统未授予持久存储，请定期备份",
                 );
               })
             }
           >
-            申请长期保留
+            申请持久存储
           </button>
         </div>
       </div>
@@ -299,16 +301,16 @@ export function Settings({
           <span className="install-mark" aria-hidden="true">
             <Smartphone size={20} strokeWidth={1.5} />
           </span>
-          <h2>装到主屏幕</h2>
+          <h2>添加到主屏幕</h2>
         </div>
         <p className="install-guide">
-          在 iPhone 的 Safari 里打开这一页，点「分享」→「添加到主屏幕」。第一次联网时等缓存完成，就可以断网使用。
+          在 iPhone Safari 中打开此页，点「分享」→「添加到主屏幕」。首次联网缓存完成后可离线使用。
         </p>
         <div className={`status-pill ${offlineReady ? "ready" : ""}`}>
-          {offlineReady ? "应用已缓存，可以离线使用" : "正在缓存…"}
+          {offlineReady ? "已缓存，可离线使用" : "正在缓存…"}
         </div>
         <p className="install-note">
-          装好后请一直从主屏幕打开。同一台设备上，浏览器和主屏幕应用可能是两套存储；换网址、换浏览器或清理网站数据都不会带走记录。
+          安装后请始终从主屏幕打开。浏览器和主屏幕应用的存储可能互相独立；更换网址、浏览器或清理网站数据不会迁移记录。
         </p>
         {needRefresh && (
           <button className="secondary" onClick={onUpdate}>
@@ -320,14 +322,14 @@ export function Settings({
       <div className="storage-warning">
         <Info size={18} strokeWidth={1.5} aria-hidden="true" />
         <p>
-          浏览器数据可能被系统清理，不能代替备份。最好每周导出一次，并确认文件已经存进「文件」App。备份之后的记录，要再导一次。
+          浏览器存储可能被系统清理，不能代替备份。建议每周导出一次并保存到「文件」App。备份只包含导出时的数据。
         </p>
       </div>
       <div className="card settings-list danger">
         <SettingRow
           icon={<Trash2 size={18} strokeWidth={1.5} aria-hidden="true" />}
-          title="清空这本手记"
-          hint="密码和设置会保留"
+          title="清空所有记录"
+          hint="保留密码和设置"
           onClick={() => openPanel("clear")}
         />
       </div>
@@ -352,7 +354,7 @@ export function Settings({
             {panel === "export" && (
               <>
                 <p className="settings-note">
-                  给这份备份单独设一个密码，至少 8 个字符。在任何设备上恢复都要用它。
+                  为备份单独设置密码（至少 8 个字符），恢复时需要。
                 </p>
                 <div className="settings-fields">
                   <label className="field">
@@ -380,7 +382,7 @@ export function Settings({
                   onClick={() =>
                     void run("正在生成备份…", async () => {
                       if (password !== confirmPassword)
-                        throw new Error("两次输入的备份密码不一样。");
+                        throw new Error("两次输入的备份密码不一致。");
                       const blob = await exportBackup(vault, password);
                       await vault.assertRevision(revision);
                       const f = new File(
@@ -392,12 +394,12 @@ export function Settings({
                       setPassword("");
                       setConfirmPassword("");
                       setMessage(
-                        "备份已经打包好，点下面保存到「文件」App。",
+                        "备份已生成，点击下方按钮保存到「文件」App。",
                       );
                     })
                   }
                 >
-                  开始打包
+                  生成备份
                 </button>
                 {feedback}
                 {backup && (
@@ -426,7 +428,7 @@ export function Settings({
             {panel === "import" && (
               <>
                 <p className="settings-note">
-                  恢复会覆盖现在的记录。检查不通过不会动本地数据，建议先导出一份现有的备份。
+                  恢复会覆盖当前数据。校验失败不会改动本机数据。建议先导出当前备份。
                 </p>
                 <input
                   ref={importRef}
@@ -466,23 +468,23 @@ export function Settings({
                   className="primary wide"
                   disabled={!!busy || !file}
                   onClick={() =>
-                    void run("正在检查备份…", async () => {
-                      if (!file) throw new Error("先选一个备份文件");
+                    void run("正在校验…", async () => {
+                      if (!file) throw new Error("请选择备份文件");
                       setParsedRevision(revision);
                       setParsed(await importBackup(file, password));
                     })
                   }
                 >
-                  检查备份
+                  校验备份
                 </button>
                 {feedback}
                 {parsed && (
                   <div className="restore-preview">
-                    <h3>备份检查通过</h3>
+                    <h3>校验通过</h3>
                     <p>
-                      {parsed.entries.length} 次记录 · {parsed.photos.length}{" "}
+                      {parsed.entries.length} 条记录 · {parsed.photos.length}{" "}
                       张照片 · {parsed.sessions.length} 个时段 ·{" "}
-                      {parsed.fate.draws.length} 次轮盘判定
+                      {parsed.fate.draws.length} 次轮盘结果
                     </p>
                     <button
                       className="primary wide"
@@ -501,7 +503,7 @@ export function Settings({
                           setParsed(null);
                           setFile(null);
                           setPassword("");
-                          setMessage("记录和照片已经完整恢复。");
+                          setMessage("已恢复全部记录和照片。");
                         })
                       }
                     >
@@ -548,7 +550,7 @@ export function Settings({
                   onClick={() =>
                     void run("正在修改密码…", async () => {
                       if (password !== confirmPassword)
-                        throw new Error("两次新密码不一样。");
+                        throw new Error("两次新密码不一致。");
 
                       await unlockVault(vault.config, currentPassword);
                       await vault.changePassword(password, revision);
@@ -556,7 +558,7 @@ export function Settings({
                       setPassword("");
                       setCurrentPassword("");
                       setConfirmPassword("");
-                      setMessage("密码已经换好，下次请用新密码。");
+                      setMessage("密码已更换。");
                     })
                   }
                 >
@@ -568,7 +570,7 @@ export function Settings({
             {panel === "clear" && (
               <>
                 <p className="settings-warning-text">
-                  会删掉全部记录、照片和时段，无法撤销。密码会保留。请先保存一份备份。
+                  将删除全部记录、照片和时段，无法撤销。密码和设置保留。请先导出备份。
                 </p>
                 <label className="field">
                   输入「清空」确认
@@ -585,7 +587,7 @@ export function Settings({
                     void run("正在清空…", async () => {
                       await vault.clear(revision);
                       await refresh();
-                      setMessage("这本手记已经清空。");
+                      setMessage("已清空所有记录。");
                       setConfirmation("");
                     })
                   }

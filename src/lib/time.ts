@@ -175,7 +175,7 @@ export function validateSession(session: WearSession, now = Date.now()) {
     session.breaks !== undefined &&
     (!Array.isArray(session.breaks) || session.breaks.length > 10000)
   )
-    throw new Error("小憩记录格式无效");
+    throw new Error("暂停记录格式无效");
   let previous = session.start;
   for (const [i, b] of (session.breaks ?? []).entries()) {
     if (
@@ -191,7 +191,7 @@ export function validateSession(session: WearSession, now = Date.now()) {
           b.end <= b.start ||
           b.end > (session.end ?? now))
     )
-      throw new Error("小憩必须位于时段内，不能重叠，进行中的小憩只能在末尾");
+      throw new Error("暂停必须位于时段内，不能重叠，进行中的暂停只能在末尾");
     previous = b.end ?? now;
   }
 }

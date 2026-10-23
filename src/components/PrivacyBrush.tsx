@@ -91,7 +91,7 @@ export function PrivacyBrush({
       }
     };
     img.onerror = () => {
-      if (alive.current) setError("照片没能打开");
+      if (alive.current) setError("照片读取失败");
     };
     img.src = url;
     return () => {
@@ -126,7 +126,7 @@ export function PrivacyBrush({
       }}
     >
       <p className="muted brush-intro">
-        黑笔可以彻底涂掉；马赛克只是降低清晰度。遮好后仍然要记得保存这一页，保存时才会替换本机里的照片。
+        黑笔完全遮挡，马赛克降低清晰度。打码后需保存记录才会替换本机照片。
       </p>
       <div className="segmented brush-modes">
         <button
@@ -191,7 +191,7 @@ export function PrivacyBrush({
             render();
           }}
         >
-          撤回一笔
+          撤销
         </button>
         <button
           className="secondary"
@@ -202,7 +202,7 @@ export function PrivacyBrush({
             render();
           }}
         >
-          全部重来
+          清除打码
         </button>
       </div>
       {error && (
@@ -219,7 +219,7 @@ export function PrivacyBrush({
           try {
             const b = await new Promise<Blob>((resolve, reject) =>
               canvas.current!.toBlob(
-                (b) => (b ? resolve(b) : reject(new Error("没能生成遮好的照片"))),
+                (b) => (b ? resolve(b) : reject(new Error("打码照片生成失败"))),
                 "image/jpeg",
                 0.95,
               ),
@@ -236,7 +236,7 @@ export function PrivacyBrush({
           }
         }}
       >
-        {busy ? "正在生成…" : "就遮这样"}
+        {busy ? "正在生成…" : "应用打码"}
       </button>
     </Modal>
   );

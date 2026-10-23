@@ -11,9 +11,9 @@ export default defineConfig({
       registerType: "prompt",
       includeManifestIcons: false,
       manifest: {
-        name: "私记 · 一册自己的手记",
+        name: "私记",
         short_name: "私记",
-        description: "一本只写给自己、只留在本机的照片手记",
+        description: "本机加密的私人记录",
         lang: "zh-CN",
         start_url: "./",
         scope: "./",

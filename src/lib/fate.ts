@@ -39,7 +39,7 @@ export const kindNames: Record<FateKind, string> = {
 };
 export const FATE_COLORS = ["#A83A28", "#4F6B57", "#B07C3F", "#5B6480", "#7E5A6B", "#7A6A3F"];
 /** 今日仪式可转动时 ritualStatus 的唯一返回值，db 层与界面共用。 */
-export const RITUAL_READY = "今天的仪式已经点亮";
+export const RITUAL_READY = "今天可以转";
 export function fatePreset(hard = false, mode: FateMode = "ritual"): FateConfig {
     const items: [
         string,
@@ -47,9 +47,9 @@ export function fatePreset(hard = false, mode: FateMode = "ritual"): FateConfig 
         number,
         number
     ][] = hard
-        ? [["准假小憩", "reward", 20, 0], ["追加 6 小时", "extra", 35, 360], ["追加 12 小时", "extra", 25, 720], ["追加 24 小时", "extra", 19, 1440], ["提前结束", "reward", 1, 0]]
-        : [["平安度过", "neutral", 50, 0], ["清洁小憩 30 分钟", "reward", 20, 0], ["补拍一张细节", "task", 20, 0], ["慢慢护理一下", "task", 10, 0]];
-    return { name: hard ? "硬核加时博弈" : "温和日常", mode, slices: items.map(([label, kind, weight, extraMinutes], i) => ({
+        ? [["允许暂停", "reward", 20, 0], ["追加 6 小时", "extra", 35, 360], ["追加 12 小时", "extra", 25, 720], ["追加 24 小时", "extra", 19, 1440], ["提前结束", "reward", 1, 0]]
+        : [["平安度过", "neutral", 50, 0], ["暂停 30 分钟", "reward", 20, 0], ["补拍细节照", "task", 20, 0], ["护理", "task", 10, 0]];
+    return { name: hard ? "加时" : "温和日常", mode, slices: items.map(([label, kind, weight, extraMinutes], i) => ({
             id: `preset-${hard ? "hard" : "gentle"}-${i}`, label, kind, weight, extraMinutes, color: FATE_COLORS[i],
         })) };
 }
@@ -92,14 +92,14 @@ export function validateFateState(value: unknown): FateState {
             !Number.isInteger(d.totalWeight) || d.totalWeight < 1 || d.totalWeight > 240000 ||
             (d.sessionId !== undefined && !validId(d.sessionId)) ||
             (d.attachedEntryId !== undefined && !validId(d.attachedEntryId)))
-            throw new Error("轮盘判定记录无效或重复");
+            throw new Error("轮盘结果记录无效或重复");
         validateSlice(d.slice);
         const date = new Date(d.timestamp - d.timezoneOffset * 60000);
         if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== d.day || d.totalWeight < d.slice.weight)
-            throw new Error("轮盘判定日期或权重无效");
+            throw new Error("轮盘结果日期或权重无效");
         if (d.mode === "ritual") {
             if (days.has(d.day))
-                throw new Error("同一天存在重复的仪式判定");
+                throw new Error("同一天存在重复的每日一次结果");
             days.add(d.day);
         }
         ids.add(d.id);
@@ -130,14 +130,14 @@ export function pickFate(config: FateConfig): FateSlice {
 export function ritualStatus(state: FateState, entries: Entry[], now: number) {
     const day = dayKey(now);
     if (state.draws.some((d) => d.mode === "ritual" && d.day === day))
-        return "今天的仪式已经做过了";
+        return "今天已转过";
     if (!entries.some((e) => e.photoIds.length > 0 && dayKey(e.timestamp) === day && dayKey(e.createdAt) === day))
-        return "今天先拍一张，再来转";
+        return "今天保存带照片的记录后可转";
     return RITUAL_READY;
 }
 export function fateNote(draw: FateDraw) {
     const extra = draw.slice.kind === "extra" ? `（追加 ${draw.slice.extraMinutes} 分钟）` : "";
-    return `[🎲 命运判定] ${draw.slice.label}${extra}`;
+    return `[命运轮盘] ${draw.slice.label}${extra}`;
 }
 // Weighted visual sectors and the target angle share the same boundaries.
 export function fateSectors(slices: FateSlice[]) {

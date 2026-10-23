@@ -73,7 +73,7 @@ export function FateWheel({ vault, state, entries, revision, now, refresh }: {
                 setError(userError(e)); });
             const target = fateSectors(frozen).find((s) => s.slice.id === draw.slice.id);
             if (!target)
-                throw new Error("结果已经存下，重新打开轮盘就能看到");
+                throw new Error("结果已保存，重新打开轮盘可查看。");
             const start = rotation, normalized = ((start % 360) + 360) % 360;
             const wanted = (360 - target.center) % 360;
             const end = start + 5 * 360 + ((wanted - normalized + 360) % 360);
@@ -121,7 +121,7 @@ export function FateWheel({ vault, state, entries, revision, now, refresh }: {
     return <div className="fate-panel">
     <div className="fate-heading">
       <div className="fate-heading-text">
-        <span className="eyebrow">{state.config.mode === "ritual" ? "每日仪式" : "自由模式"}</span>
+        <span className="eyebrow">{state.config.mode === "ritual" ? "每日一次" : "不限次数"}</span>
         <h3>{state.config.name}</h3>
       </div>
       <button className="icon-button fate-config-button" aria-label="调整轮盘" disabled={phase !== "idle" || attachmentBusy} onClick={() => { setEditing(true); setVisual(null); setRotation(0); }}><Settings2 size={20} strokeWidth={1.7}/></button>
@@ -146,15 +146,15 @@ export function FateWheel({ vault, state, entries, revision, now, refresh }: {
         <circle className="fate-hub-dot" cx="160" cy="160" r="3"/>
       </svg>
     </div>
-    <p className="fate-rule" role="status">{phase === "saving" ? "正在存结果…" : phase === "spinning" ? "正在转 · 结果已经存进本机" : state.config.mode === "free" ? "自由模式 · 每次都会留下记录" : ritual}</p>
-    <button className="primary wide fate-spin" disabled={!canDraw || phase !== "idle" || attachmentBusy} onClick={() => void spin()}><Dices size={19}/>{phase === "idle" ? "转一转" : phase === "saving" ? "正在存…" : "转着呢…"}</button>
+    <p className="fate-rule" role="status">{phase === "saving" ? "正在保存…" : phase === "spinning" ? "结果已保存" : state.config.mode === "free" ? "不限次数 · 每次结果都会保存" : ritual}</p>
+    <button className="primary wide fate-spin" disabled={!canDraw || phase !== "idle" || attachmentBusy} onClick={() => void spin()}><Dices size={19}/>{phase === "idle" ? "转动" : phase === "saving" ? "正在保存…" : "正在转…"}</button>
     {error && <p className="error fate-error" role="alert">{error}</p>}
     {last && phase === "idle" && <div className="fate-result" aria-live="polite">
-      <span className="eyebrow">{last.day === dayKey(now) ? "最近一次" : "历史判定"} · {kindNames[last.slice.kind]}</span>
+      <span className="eyebrow">{last.day === dayKey(now) ? "最近一次" : "历史结果"} · {kindNames[last.slice.kind]}</span>
       <h3><Sparkles size={18} strokeWidth={1.7}/>{last.slice.label}</h3>
-      <p className="fate-result-meta">{dateTime(last.timestamp)} · {last.mode === "ritual" ? "每日仪式" : "自由模式"}{last.slice.kind === "extra" ? ` · 追加 ${last.slice.extraMinutes} 分钟` : ""}</p>
-      {last.attachedEntryId ? <p className="fate-result-attached">已经写进记录</p> : last.day === dayKey(now) && todayEntries.length > 0 && <div className="fate-attach">
-        <label className="field">写进今天的记录<select aria-label="写进今天的记录" value={chosenEntry} onChange={(e) => setEntryId(e.target.value)}>{todayEntries.map((e) => <option key={e.id} value={e.id}>{dateTime(e.timestamp)} · {e.photoIds.length} 张照片</option>)}</select></label>
+      <p className="fate-result-meta">{dateTime(last.timestamp)} · {last.mode === "ritual" ? "每日一次" : "不限次数"}{last.slice.kind === "extra" ? ` · 追加 ${last.slice.extraMinutes} 分钟` : ""}</p>
+      {last.attachedEntryId ? <p className="fate-result-attached">已添加到记录</p> : last.day === dayKey(now) && todayEntries.length > 0 && <div className="fate-attach">
+        <label className="field">添加到今天的记录<select aria-label="添加到今天的记录" value={chosenEntry} onChange={(e) => setEntryId(e.target.value)}>{todayEntries.map((e) => <option key={e.id} value={e.id}>{dateTime(e.timestamp)} · {e.photoIds.length} 张照片</option>)}</select></label>
         <button className="secondary wide" disabled={attachmentBusy} onClick={async () => {
                     setAttachmentBusy(true);
                     setError("");
@@ -170,11 +170,11 @@ export function FateWheel({ vault, state, entries, revision, now, refresh }: {
                         if (mounted.current)
                             setAttachmentBusy(false);
                     }
-                }}>写进今天的记录</button>
+                }}>添加到今天的记录</button>
       </div>}
     </div>}
     <ol className="fate-legend">{slices.map((s) => <li key={s.id}><span className="fate-swatch" style={{ background: s.color }}/><span className="fate-legend-name">{s.label}<small>{kindNames[s.kind]}{s.kind === "extra" ? ` · ${s.extraMinutes} 分钟` : ""}</small></span><strong className="fate-legend-prob">{(s.weight / totalWeight * 100).toFixed(1)}%</strong></li>)}</ol>
-    <p className="muted fate-footnote">结果在动画开始前就已加密存下。判定只是记录，做不做由你决定；加时不会改动实际计时。</p>
+    <p className="muted fate-footnote">结果在动画开始前已加密保存。结果仅作记录，是否执行由你决定；加时不会改动计时。</p>
     {editing && <FateOptions vault={vault} config={state.config} revision={revision} refresh={refresh} onClose={() => setEditing(false)}/>}
   </div>;
 }
@@ -201,10 +201,10 @@ function FateOptions({ vault, config, revision, refresh, onClose }: {
     return <Modal title="调整命运轮盘" onClose={() => { if (!busy && (!dirty || confirm("放弃还没保存的轮盘配置？")))
         onClose(); }}>
     <fieldset className="form-stack fate-options" disabled={busy}>
-      <label className="field">给它起个名字<input maxLength={100} value={draft.name} onChange={(e) => update({ ...draft, name: e.target.value })}/></label>
-      <label className="field">抽取方式<select aria-label="抽取方式" aria-describedby="fate-mode-help" value={draft.mode} onChange={(e) => update({ ...draft, mode: e.target.value as FateConfig["mode"] })}><option value="ritual">每日仪式</option><option value="free">自由模式</option></select><small id="fate-mode-help">每日仪式需要今天新拍的照片，每个本地日期最多一次。切换方式或预设不会重置次数。</small></label>
-      <div className="fate-preset-buttons"><button className="secondary" onClick={() => preset(false)}>温和日常</button><button className="secondary" onClick={() => preset(true)}>硬核加时</button></div>
-      <p className="muted fate-options-note">权重决定概率和扇区面积；1 和 9 就是 10% 和 90%。旧判定保留当时的内容。</p>
+      <label className="field">名称<input maxLength={100} value={draft.name} onChange={(e) => update({ ...draft, name: e.target.value })}/></label>
+      <label className="field">抽取方式<select aria-label="抽取方式" aria-describedby="fate-mode-help" value={draft.mode} onChange={(e) => update({ ...draft, mode: e.target.value as FateConfig["mode"] })}><option value="ritual">每日一次</option><option value="free">不限次数</option></select><small id="fate-mode-help">每日一次：需要今天新建的带照片记录，每天最多转一次。切换方式或预设不会重置次数。</small></label>
+      <div className="fate-preset-buttons"><button className="secondary" onClick={() => preset(false)}>温和日常</button><button className="secondary" onClick={() => preset(true)}>加时</button></div>
+      <p className="muted fate-options-note">权重决定概率和扇区大小。旧结果保留当时的内容。</p>
       <div className="fate-slices">
         {draft.slices.map((s, i) => <div className="fate-slice-editor" key={s.id}>
           <div className="section-line"><h3>扇区 {i + 1}</h3><button className="text-button" aria-label={`删除扇区 ${i + 1}`} disabled={draft.slices.length <= 2} onClick={() => update({ ...draft, slices: draft.slices.filter((x) => x.id !== s.id) })}>删除</button></div>
@@ -217,7 +217,7 @@ function FateOptions({ vault, config, revision, refresh, onClose }: {
           </div>
         </div>)}
       </div>
-      <button className="secondary wide fate-add-slice" disabled={draft.slices.length >= 24} onClick={() => update({ ...draft, slices: [...draft.slices, { id: crypto.randomUUID(), label: "新扇区", kind: "neutral", weight: 10, color: FATE_COLORS[draft.slices.length % FATE_COLORS.length], extraMinutes: 0 }] })}>加一个扇区</button>
+      <button className="secondary wide fate-add-slice" disabled={draft.slices.length >= 24} onClick={() => update({ ...draft, slices: [...draft.slices, { id: crypto.randomUUID(), label: "新扇区", kind: "neutral", weight: 10, color: FATE_COLORS[draft.slices.length % FATE_COLORS.length], extraMinutes: 0 }] })}>添加扇区</button>
       {error && <p className="error" role="alert">{error}</p>}
       <button className="primary wide fate-save" onClick={async () => {
             setBusy(true);
@@ -245,9 +245,9 @@ export function FateHistory({ state }: {
     const draws = [...state.draws].reverse();
     const counts = Object.entries(kindNames).map(([kind, name]) => ({ name, count: draws.filter((d) => d.slice.kind === kind).length }));
     return <div className="card fate-history"><h2>命运历史</h2>
-    <p className="muted fate-history-total">一共 {draws.length} 次 · 每日仪式 {draws.filter((d) => d.mode === "ritual").length} 次 · 自由模式 {draws.filter((d) => d.mode === "free").length} 次</p>
+    <p className="muted fate-history-total">共 {draws.length} 次 · 每日一次 {draws.filter((d) => d.mode === "ritual").length} 次 · 不限次数 {draws.filter((d) => d.mode === "free").length} 次</p>
     <div className="fate-counts">{counts.map((c) => <span key={c.name}>{c.name}<strong>{c.count}</strong></span>)}</div>
-    {draws.length ? <ol className="fate-timeline">{draws.slice(0, limit).map((d) => <li key={d.id}><span className="fate-swatch" style={{ background: d.slice.color }}/><div><strong>{d.slice.label}</strong><small>{dateTime(d.timestamp)} · {d.mode === "ritual" ? "仪式" : "自由"} · {kindNames[d.slice.kind]}{d.slice.kind === "extra" ? ` · ${d.slice.extraMinutes} 分钟` : ""}</small><small>{d.wheelName} · 概率 {(d.slice.weight / d.totalWeight * 100).toFixed(1)}%{d.attachedEntryId ? " · 已写进记录" : ""}</small></div></li>)}</ol> : <p className="muted empty-line">每一次判定，都会留在这里。</p>}
-    {draws.length > limit && <button className="secondary wide" onClick={() => setLimit((n) => n + 20)}>再看一些判定</button>}
+    {draws.length ? <ol className="fate-timeline">{draws.slice(0, limit).map((d) => <li key={d.id}><span className="fate-swatch" style={{ background: d.slice.color }}/><div><strong>{d.slice.label}</strong><small>{dateTime(d.timestamp)} · {d.mode === "ritual" ? "每日" : "不限"} · {kindNames[d.slice.kind]}{d.slice.kind === "extra" ? ` · ${d.slice.extraMinutes} 分钟` : ""}</small><small>{d.wheelName} · 概率 {(d.slice.weight / d.totalWeight * 100).toFixed(1)}%{d.attachedEntryId ? " · 已添加到记录" : ""}</small></div></li>)}</ol> : <p className="muted empty-line">暂无结果。</p>}
+    {draws.length > limit && <button className="secondary wide" onClick={() => setLimit((n) => n + 20)}>加载更多</button>}
   </div>;
 }

@@ -59,7 +59,7 @@ export async function renderShareCard(
   c.width = 1080;
   c.height = includeHeat ? 1280 : 1000;
   const ctx = c.getContext("2d");
-  if (!ctx) throw new Error("没能生成这张小结");
+  if (!ctx) throw new Error("分享图生成失败");
 
   const w = c.width;
   const pad = 84;
@@ -79,12 +79,12 @@ export async function renderShareCard(
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = INK;
   ctx.font = '600 64px "Songti SC","STSong",serif';
-  ctx.fillText("我的记录", pad, 246);
+  ctx.fillText("我的统计", pad, 246);
 
   /* 落款小字 */
   ctx.fillStyle = SOFT;
   ctx.font = '30px "PingFang SC",sans-serif';
-  ctx.fillText("私记 · 匿名小结", pad, 312);
+  ctx.fillText("私记 · 匿名统计", pad, 312);
 
   /* 细线分隔 */
   ctx.strokeStyle = HEAT[0];
@@ -162,7 +162,7 @@ export async function renderShareCard(
   return new Promise((resolve, reject) =>
     c.toBlob((b) => {
       c.width = c.height = 1;
-      b ? resolve(b) : reject(new Error("小结生成失败"));
+      b ? resolve(b) : reject(new Error("分享图生成失败"));
     }, "image/png"),
   );
 }
