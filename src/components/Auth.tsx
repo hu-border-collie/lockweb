@@ -107,7 +107,7 @@ export function Auth({
         setPassword("");
         await onUnlock(result.vault, c.signal, result.guard);
       } else {
-        if (password !== repeat) throw new Error("两次输入的密码不一样。");
+        if (password !== repeat) throw new Error("两次输入的密码不一致。");
         const { key, config: newConfig } = await createVault(
           password,
           db,
@@ -135,15 +135,13 @@ export function Auth({
         <span className="brand-mark" aria-hidden="true">
           私
         </span>
-        <span>
-          私记<small>只写给自己</small>
-        </span>
+        <span>私记</span>
       </div>
       <div className="auth-intro">
         <p>
           {config
-            ? "输入密码，回到上次那一页。"
-            : "没有账号，也不上传任何东西。\n设一个只有你知道的密码，写下第一页。"}
+            ? "输入密码解锁。"
+            : "数据加密保存在本机，不需要账号，不会上传。\n设置密码后开始使用。"}
         </p>
       </div>
       <form className="card auth-form" onSubmit={(e) => void submit(e)}>
@@ -155,7 +153,7 @@ export function Auth({
               autoComplete={config ? "current-password" : "new-password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={config ? "只有你知道的密码" : "至少 8 个字符"}
+              placeholder={config ? undefined : "至少 8 个字符"}
               required
               minLength={config ? 1 : 8}
             />
@@ -179,7 +177,7 @@ export function Auth({
             </p>
           )}
           <button className="primary wide" disabled={busy} type="submit">
-            {busy ? "正在开锁…" : config ? "打开手记" : "开启手记"}
+            {busy ? (config ? "正在解锁…" : "正在创建…") : config ? "解锁" : "创建"}
             <ArrowRight size={19} />
           </button>
         </fieldset>
@@ -213,14 +211,14 @@ export function Auth({
               }
             }}
           >
-            用面容 / 指纹打开
+            面容 / 指纹解锁
           </button>
           <p className="auth-warning">
             {!capable
-              ? "这里暂时用不了系统验证，请输入密码。"
+              ? "此环境不支持系统验证，请输入密码。"
               : !canQuick
-                ? "快速验证已过期，输入密码可以重新开始。"
-                : "这台设备可以用面容、指纹或设备密码打开。"}
+                ? "快速解锁已过期，请输入密码。输入后重新开始计算有效期。"
+                : "可使用面容、指纹或设备密码解锁。"}
           </p>
         </>
       )}
@@ -239,12 +237,12 @@ export function Auth({
       )}
       <div className="auth-privacy">
         <ShieldCheck size={18} />
-        <span>只在本机 · 离线可用 · 不上传</span>
+        <span>仅存本机 · 可离线使用 · 不上传</span>
       </div>
       <p className="auth-warning">
         {config
-          ? "密码找不回来。换设备时，请用加密备份恢复。"
-          : "请记住密码，并定期导出备份。浏览器数据可能被清理，忘记密码就无法找回。"}
+          ? "密码无法找回。更换设备需要用加密备份恢复。"
+          : "密码无法找回，忘记后数据无法解密。浏览器可能清理本地数据，请定期导出备份。"}
       </p>
       {config && (
         <button
@@ -258,10 +256,10 @@ export function Auth({
       {reset && (
         <div className="card form-stack">
           <p className="muted">
-            只能删掉本机的手记重新开始。如果有加密备份，可以设个新密码再恢复。这个操作无法撤销。
+            只能删除本机数据并重新创建。如有加密备份，可设置新密码后恢复。此操作无法撤销。
           </p>
           <label className="field">
-            输入「删掉这本手记」
+            输入「删除本机数据」确认
             <input
               value={confirmation}
               onChange={(e) => setConfirmation(e.target.value)}
@@ -269,7 +267,7 @@ export function Auth({
           </label>
           <button
             className="danger-button"
-            disabled={confirmation !== "删掉这本手记" || busy}
+            disabled={confirmation !== "删除本机数据" || busy}
             onClick={() =>
               void (async () => {
                 try {
@@ -293,7 +291,7 @@ export function Auth({
               })()
             }
           >
-            删掉这本手记
+            删除本机数据
           </button>
         </div>
       )}

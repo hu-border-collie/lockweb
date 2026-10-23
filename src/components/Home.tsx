@@ -5,6 +5,7 @@ import {
   ArrowUpRight,
   ChevronRight,
   Camera,
+  Dices,
 } from "lucide-react";
 import type { Vault } from "../lib/db";
 import type { Entry, WearSession, JournalSettings } from "../lib/models";
@@ -24,7 +25,7 @@ function LiveWearTimer({ session }: { session?: WearSession }) {
   }, [session]);
 
   if (!session) {
-    return <div className="wear-timer">尚未开始</div>;
+    return <div className="wear-timer">--:--:--</div>;
   }
   return (
     <div className="wear-timer">
@@ -41,7 +42,7 @@ function LivePauseDuration({ pauseStart }: { pauseStart: number }) {
   }, []);
   return (
     <p className="hero-start hero-pause">
-      小憩已持续 {duration(now - pauseStart, true)} · 这里不计入佩戴
+      已暂停 {duration(now - pauseStart, true)}，不计入佩戴时长
     </p>
   );
 }
@@ -113,33 +114,31 @@ export const Home = memo(function Home({
         <div className="hero-top">
           <span className="state-label">
             <i aria-hidden="true" />
-            {active ? (paused ? "小憩中" : "正在佩戴") : "此刻未佩戴"}
+            {active ? (paused ? "已暂停" : "正在佩戴") : "未佩戴"}
           </span>
           <button className="hero-link" onClick={onOpenManage}>
-            时段
+            佩戴时段
             <ArrowUpRight size={15} aria-hidden="true" />
           </button>
         </div>
-        <p className="hero-caption">
-          {active ? "这一程，已经" : "按自己的节奏来"}
-        </p>
+        {active && <p className="hero-caption">本次时长</p>}
         <LiveWearTimer session={active} />
         <p className="hero-start">
           {active
             ? `${dateTime(active.start)} 开始`
-            : "佩戴与记录分开保存，不用勉强。"}
+            : "计时和拍照记录互相独立。"}
         </p>
         {active && paused && activePause && (
           <LivePauseDuration pauseStart={activePause.start} />
         )}
         {activeFate && (
           <p className="fate-session-badge">
-            🎲 命运判定 · {kindNames[activeFate.slice.kind]}：
+            轮盘结果 · {kindNames[activeFate.slice.kind]}：
             {activeFate.slice.label}
             {activeFate.slice.kind === "extra"
               ? ` · ${activeFate.slice.extraMinutes} 分钟`
               : ""}
-            <small>只是记下判定，计时照常</small>
+            <small>仅作记录，不影响计时</small>
           </p>
         )}
         <div className={`hero-actions${active ? "" : " is-single"}`}>
@@ -161,18 +160,18 @@ export const Home = memo(function Home({
               disabled={busy}
               onClick={() => void onTogglePause()}
             >
-              {paused ? "继续佩戴" : "清洁小憩"}
+              {paused ? "继续佩戴" : "暂停"}
             </button>
           )}
         </div>
         {!active && settings.gears.some((g) => !g.archived) && (
           <label className="field hero-gear">
-            这次的装备
+            装备
             <select
               value={gearId}
               onChange={(e) => setGearId(e.target.value)}
             >
-              <option value="">不选装备</option>
+              <option value="">不指定</option>
               {settings.gears
                 .filter((g) => !g.archived)
                 .map((g) => (
@@ -187,14 +186,14 @@ export const Home = memo(function Home({
 
       <div className="home-metrics">
         <div>
-          <span>今天记了</span>
+          <span>今日记录</span>
           <strong>
             {today.length}
-            <small> 笔</small>
+            <small> 条</small>
           </strong>
         </div>
         <div>
-          <span>最近一笔</span>
+          <span>最近记录</span>
           <strong className="time-metric">
             {entries.length ? clock(entries[0].timestamp) : "—"}
             <small>
@@ -202,7 +201,7 @@ export const Home = memo(function Home({
                 ? dayKey(entries[0].timestamp) === dayKey(now)
                   ? " 今天"
                   : " " + dayKey(entries[0].timestamp).slice(5)
-                : " 还没记"}
+                : " 无"}
             </small>
           </strong>
         </div>
@@ -223,21 +222,21 @@ export const Home = memo(function Home({
           <Camera size={22} strokeWidth={1.6} />
         </span>
         <span className="quick-capture-text">
-          <strong>拍一张</strong>
-          <small>照片和这一刻，都留给自己。</small>
+          <strong>新建记录</strong>
+          <small>拍照或从相册选择</small>
         </span>
         <ChevronRight size={18} aria-hidden="true" />
       </button>
 
       <button className="fate-launch" onClick={onOpenWheel}>
         <span className="fate-launch-icon" aria-hidden="true">
-          命
+          <Dices size={20} strokeWidth={1.6} />
         </span>
         <span className="fate-launch-text">
           <strong>命运轮盘</strong>
           <small>
             {fate.config.mode === "free"
-              ? "自由模式 · 随时能转"
+              ? "不限次数"
               : ritualStatus(fate, entries, now)}
           </small>
         </span>
@@ -250,7 +249,7 @@ export const Home = memo(function Home({
           className="text-button"
           onClick={() => onNavigate("calendar")}
         >
-          看全部
+          全部
           <ChevronRight size={14} aria-hidden="true" />
         </button>
       </div>
@@ -271,15 +270,15 @@ export const Home = memo(function Home({
       ) : (
         <div className="card recent-empty">
           <Empty
-            title="从第一张照片开始"
-            detail="随手拍下的，都是自己的日子。"
+            title="暂无照片"
+            detail="保存带照片的记录后显示在这里。"
           />
         </div>
       )}
 
       <div className="section-line">
-        <h2>今天写下的</h2>
-        <span className="muted">{today.length} 笔</span>
+        <h2>今日记录</h2>
+        <span className="muted">{today.length} 条</span>
       </div>
 
       {today.length ? (
@@ -294,7 +293,7 @@ export const Home = memo(function Home({
         ))
       ) : (
         <p className="muted empty-line">
-          今天的记录，会一页页出现在这里。
+          今天还没有记录。
         </p>
       )}
     </>

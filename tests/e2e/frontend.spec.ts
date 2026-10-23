@@ -5,7 +5,7 @@ async function create(page: Page) {
   await page.goto("/");
   await page.getByLabel("设置密码").fill("test-password");
   await page.getByLabel("确认密码", { exact: true }).fill("test-password");
-  await page.getByRole("button", { name: "开启手记" }).click();
+  await page.getByRole("button", { name: "创建" }).click();
   await expect(page.getByRole("button", { name: "开始佩戴", exact: true })).toBeVisible();
 }
 
@@ -18,17 +18,17 @@ async function addPhotos(page: Page, count = 1) {
   await page.getByLabel("从相册选择照片").setInputFiles(
     Array.from({ length: count }, () => path.resolve("tests/fixture.jpg")),
   );
-  await expect(page.getByRole("button", { name: "收进今天", exact: true })).toBeEnabled();
-  await page.getByRole("button", { name: "收进今天", exact: true }).click();
+  await expect(page.getByRole("button", { name: "保存记录", exact: true })).toBeEnabled();
+  await page.getByRole("button", { name: "保存记录", exact: true }).click();
   await expect(page.locator("article.record")).toHaveCount(1);
 }
 
 test("dragging a draft onto the backdrop preserves it; a backdrop click closes", async ({ page }) => {
   await page.setViewportSize({ width: 1000, height: 1000 });
   await create(page);
-  await page.getByRole("button", { name: "时段" }).click();
-  await page.getByRole("button", { name: "补记时段" }).click();
-  const dialog = page.getByRole("dialog", { name: "补记时段", exact: true });
+  await page.getByRole("button", { name: "佩戴时段" }).click();
+  await page.getByRole("button", { name: "补录时段" }).click();
+  const dialog = page.getByRole("dialog", { name: "补录时段", exact: true });
   const note = dialog.locator("textarea");
   await note.fill("尚未保存的备注");
   // Wait for the sheet's entrance animation before taking pointer coordinates.
@@ -55,11 +55,11 @@ test("the comparison handle stays aligned while pressed and dragged", async ({ p
   await create(page);
   await addPhotos(page, 2);
   await nav(page, "日历");
-  await page.getByRole("button", { name: "挑两张照片对比", exact: true }).click();
+  await page.getByRole("button", { name: "对比照片", exact: true }).click();
   await page.locator(".compare-picks input").nth(0).check();
   await page.locator(".compare-picks input").nth(1).check();
   await page.getByRole("button", { name: "开始对比（2/2）", exact: true }).click();
-  await page.getByRole("button", { name: "卷帘看", exact: true }).click();
+  await page.getByRole("button", { name: "卷帘", exact: true }).click();
   const divider = page.getByRole("slider", { name: "照片卷帘分界线" });
   await divider.scrollIntoViewIfNeeded();
   const alignmentError = () => divider.evaluate((e) => {
@@ -123,7 +123,7 @@ test("second ticks update only the live timers and keep a paused wear duration f
   await page.waitForTimeout(2100);
   expect(await counts()).toEqual(idleCounts);
   await page.getByRole("button", { name: "开始佩戴", exact: true }).click();
-  await expect(page.getByRole("button", { name: "清洁小憩", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "暂停", exact: true })).toBeEnabled();
   // Let the four-second toast clear before measuring steady-state renders.
   await expect(page.locator(".toast")).toHaveCount(0);
   const before = await counts();
@@ -135,12 +135,12 @@ test("second ticks update only the live timers and keep a paused wear duration f
   await expect(timer).not.toHaveText(initial!);
   expect(await counts()).toEqual(before);
 
-  await page.getByRole("button", { name: "清洁小憩", exact: true }).click();
+  await page.getByRole("button", { name: "暂停", exact: true }).click();
   await expect(page.getByRole("button", { name: "继续佩戴", exact: true })).toBeEnabled();
   await page.waitForTimeout(1000);
   const pausedCounts = await counts();
   const pausedWear = await timer.textContent();
-  const pause = page.locator(".hero-start").filter({ hasText: "小憩已持续" });
+  const pause = page.locator(".hero-start").filter({ hasText: "已暂停" });
   const initialPause = await pause.textContent();
   await page.waitForTimeout(3100);
   await expect(timer).toHaveText(pausedWear!);
@@ -148,11 +148,11 @@ test("second ticks update only the live timers and keep a paused wear duration f
   expect(await counts()).toEqual(pausedCounts);
 
   await page.getByRole("button", { name: "继续佩戴", exact: true }).click();
-  await expect(page.getByRole("button", { name: "清洁小憩", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "暂停", exact: true })).toBeEnabled();
   const resumed = await timer.textContent();
   await page.waitForTimeout(3100);
   await expect(timer).not.toHaveText(resumed!);
-  await nav(page, "回顾");
+  await nav(page, "统计");
   await expect(page.locator(".stat-detail")).toContainText("0 小时 0 分钟");
   await page.clock.fastForward(120000);
   await expect(page.locator(".stat-detail")).toContainText("0 小时 2 分钟");
@@ -164,17 +164,17 @@ test("midnight refreshes today's records and ritual eligibility without a reload
   await create(page);
   await addPhotos(page);
   await page.getByRole("button", { name: "命运轮盘" }).click();
-  await page.getByRole("button", { name: "转一转", exact: true }).click();
+  await page.getByRole("button", { name: "转动", exact: true }).click();
   await expect(page.locator(".fate-result")).toBeVisible();
-  await expect(page.locator(".fate-rule")).toHaveText("今天的仪式已经做过了");
+  await expect(page.locator(".fate-rule")).toHaveText("今天已转过");
   await page.getByRole("dialog", { name: "命运轮盘", exact: true })
     .getByRole("button", { name: "关闭", exact: true }).click();
   await page.clock.pauseAt(new Date("2026-10-15T23:59:50+08:00"));
   await page.clock.runFor(11000);
-  await expect(page.locator(".home-metrics > div").first()).toContainText("0 笔");
+  await expect(page.locator(".home-metrics > div").first()).toContainText("0 条");
   await expect(page.locator("article.record")).toHaveCount(0);
-  await expect(page.locator(".fate-launch")).toContainText("今天先拍一张，再来转");
+  await expect(page.locator(".fate-launch")).toContainText("今天保存带照片的记录后可转");
   await expect(page.locator(".eyebrow").first()).toContainText("10月16日");
   await page.getByRole("button", { name: "命运轮盘" }).click();
-  await expect(page.getByRole("button", { name: "转一转", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "转动", exact: true })).toBeDisabled();
 });

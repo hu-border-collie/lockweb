@@ -121,18 +121,18 @@ export const Calendar = memo(function Calendar({
                   key={key}
                   className={`day${key === selected ? " selected" : ""}${isToday ? " today" : ""}`}
                   onClick={() => onSelect(key)}
-                  aria-label={`${key}，${count} 笔记录`}
+                  aria-label={`${key}，${count} 条记录`}
                   aria-pressed={key === selected}
                   aria-current={isToday ? "date" : undefined}
                 >
                   <span>{i + 1}</span>
-                  <small>{count ? `${count} 笔` : "·"}</small>
+                  <small>{count ? `${count} 条` : "·"}</small>
                 </button>
               );
             })}
           </div>
           <div className="calendar-foot">
-            <span>数字是当天的记录笔数</span>
+            <span>数字为当天记录条数</span>
             <button
               type="button"
               className="text-button"
@@ -153,7 +153,7 @@ export const Calendar = memo(function Calendar({
             : "全部记录"}
         </h2>
         <span className="muted">
-          {mode === "calendar" ? filtered.length : entries.length} 笔记录
+          {mode === "calendar" ? filtered.length : entries.length} 条记录
         </span>
       </div>
       <button
@@ -165,11 +165,11 @@ export const Calendar = memo(function Calendar({
           setChosen([]);
         }}
       >
-        {choosing ? "取消对比" : "挑两张照片对比"}
+        {choosing ? "取消对比" : "对比照片"}
       </button>
       {choosing && (
         <div className="card compare-picker">
-          <p className="muted">任选两张照片，可以切换日期或加载更多。</p>
+          <p className="muted">选择两张照片。可切换日期或加载更多。</p>
           <div className="compare-picks">
             {filtered.flatMap((e) =>
               e.photoIds.map((id) => (
@@ -191,7 +191,7 @@ export const Calendar = memo(function Calendar({
                         )
                       }
                     />
-                    选这张
+                    选择
                   </span>
                 </label>
               )),
@@ -215,7 +215,7 @@ export const Calendar = memo(function Calendar({
                 dayKey(filtered[i - 1].timestamp) !== dayKey(e.timestamp)) && (
                 <h3 className="timeline-date">
                   <span>{dayLabel(dayKey(e.timestamp))}</span>
-                  <small>{counts[dayKey(e.timestamp)]} 笔</small>
+                  <small>{counts[dayKey(e.timestamp)]} 条</small>
                 </h3>
               )}
             <RecordCard
@@ -229,8 +229,8 @@ export const Calendar = memo(function Calendar({
       ) : (
         <div className="card">
           <Empty
-            title={mode === "calendar" ? "这一天还是空白" : "时间线还空着"}
-            detail="拍下第一张照片，它就会按时间出现在这里。"
+            title={mode === "calendar" ? "当天没有记录" : "暂无记录"}
+            detail="保存带照片的记录后按时间显示在这里。"
             icon={
               mode === "calendar" ? (
                 <CalendarDays size={28} aria-hidden="true" />
@@ -247,7 +247,7 @@ export const Calendar = memo(function Calendar({
           className="secondary wide"
           onClick={() => setLimit(limit + 20)}
         >
-          再看一些
+          加载更多
         </button>
       )}
       {compare && (

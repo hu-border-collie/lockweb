@@ -129,7 +129,7 @@ export function validateManifest(value: unknown): {
       !Array.isArray(e.photoIds) ||
       !e.photoIds.length
     )
-      throw new Error("备份中的打卡记录无效");
+      throw new Error("备份中的记录无效");
     ids.add(e.id);
     for (const id of e.photoIds) {
       if (!validId(id) || photoIds.has(id))

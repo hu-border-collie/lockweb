@@ -75,10 +75,10 @@ export const Stats = memo(function Stats({
           <span>今天 · 本周 · 本月</span>
           <strong>
             {stats.today}
-            <small> 笔</small>
+            <small> 条</small>
           </strong>
           <p>
-            本周 {stats.week} 笔 · 本月 {stats.month} 笔
+            本周 {stats.week} 条 · 本月 {stats.month} 条
           </p>
         </div>
         <div className="card metric">
@@ -87,7 +87,7 @@ export const Stats = memo(function Stats({
             {stats.photos}
             <small> 张</small>
           </strong>
-          <p>共 {entries.length} 次记录</p>
+          <p>共 {entries.length} 条记录</p>
         </div>
         <div className="card metric">
           <span>佩戴总时长</span>
@@ -113,7 +113,7 @@ export const Stats = memo(function Stats({
       <div className="card stat-card">
         <h2>舒适度与佩戴时长</h2>
         <p className="muted">
-          把记录按当时已经佩戴的小时数分组；只用明确关联时段、佩戴中且有评分的记录。它表示记录之间的关联，不是结论。
+          按记录时已佩戴的小时数分组，仅含关联了时段、佩戴中且有评分的记录。只反映相关性。
         </p>
         <div className="chart">
           <ResponsiveContainer width="100%" height="100%">
@@ -163,7 +163,7 @@ export const Stats = memo(function Stats({
               {b.name} · {b.count} 个评分
             </span>
             <strong>
-              {b.average === null ? "还没有评分" : b.average.toFixed(2)}
+              {b.average === null ? "无评分" : b.average.toFixed(2)}
             </strong>
           </div>
         ))}
@@ -219,13 +219,13 @@ export const Stats = memo(function Stats({
                   {t.name} · {t.count} 个评分
                 </span>
                 <strong>
-                  {t.average === null ? "还没有评分" : t.average.toFixed(2)}
+                  {t.average === null ? "无评分" : t.average.toFixed(2)}
                 </strong>
               </div>
             ))}
           </>
         ) : (
-          <p className="muted">还没有带标签的记录</p>
+          <p className="muted">暂无带标签的记录</p>
         )}
       </div>
       <div className="card stat-card">
@@ -304,7 +304,7 @@ export const Stats = memo(function Stats({
       <div className="card stat-card">
         <h2>装备使用对比</h2>
         <p className="muted">
-          同一件装备内的重叠时段会合并，小憩已经扣掉；不同装备之间不叠加时长。
+          同一装备的重叠时段合并计算，已扣除暂停。不同装备的时长不相加。
         </p>
         {analysis.gears.length ? (
           analysis.gears.map((g, i) => (
@@ -313,13 +313,13 @@ export const Stats = memo(function Stats({
               <strong>
                 {g.hours.toFixed(1)} 小时 ·{" "}
                 {g.average === null
-                  ? "还没有评分"
+                  ? "无评分"
                   : `${g.average.toFixed(2)} 分（${g.count} 次）`}
               </strong>
             </div>
           ))
         ) : (
-          <p className="muted">建好装备档案、关联记录后，这里会出现对比。</p>
+          <p className="muted">添加装备并在记录中关联后显示。</p>
         )}
       </div>
       <div className="card stat-card chart-card">
@@ -342,7 +342,7 @@ export const Stats = memo(function Stats({
         <div className="chart-legend">
           <span>
             <i aria-hidden="true" />
-            记录笔数
+            记录条数
           </span>
           <span>
             <i className="moss" aria-hidden="true" />
@@ -396,7 +396,7 @@ export const Stats = memo(function Stats({
               <Bar
                 isAnimationActive={false}
                 yAxisId="count"
-                name="记录笔数"
+                name="记录条数"
                 dataKey="checkins"
                 fill="var(--seal)"
                 radius={[2, 2, 0, 0]}
@@ -415,7 +415,7 @@ export const Stats = memo(function Stats({
           </ResponsiveContainer>
         </div>
         {!entries.length && !sessions.length && (
-          <p className="muted">还没有数据，图表会跟着记录长出来。</p>
+          <p className="muted">暂无数据。</p>
         )}
       </div>
       <div className="card stat-card heat-card">
@@ -429,8 +429,8 @@ export const Stats = memo(function Stats({
               key={day}
               type="button"
               className={`heat heat-${Math.min(counts[day] ?? 0, 4)}`}
-              aria-label={`${day}，${counts[day] ?? 0} 笔记录`}
-              title={`${day}：${counts[day] ?? 0} 笔`}
+              aria-label={`${day}，${counts[day] ?? 0} 条记录`}
+              title={`${day}：${counts[day] ?? 0} 条`}
               onClick={() => onDay(day)}
             />
           ))}

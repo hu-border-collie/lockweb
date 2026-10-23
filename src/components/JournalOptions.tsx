@@ -46,7 +46,7 @@ export function JournalOptions({
           <SlidersHorizontal size={18} strokeWidth={1.5} aria-hidden="true" />
           <span>
             <span className="setting-title">模板、快捷标签与装备</span>
-            <small>常用的写法和装备，都在这里</small>
+            <small>备注模板、常用标签、装备档案</small>
           </span>
           <ChevronRight
             className="settings-arrow"
@@ -70,11 +70,11 @@ export function JournalOptions({
                 value={tags}
                 maxLength={5000}
                 onChange={(e) => setTags(e.target.value)}
-                placeholder="用逗号分开"
+                placeholder="用逗号分隔"
               />
             </label>
             <label className="field">
-              连续佩戴的小憩上限（分钟）
+              暂停时长上限（分钟）
               <input
                 type="number"
                 min={0}
@@ -88,8 +88,7 @@ export function JournalOptions({
                 }
               />
               <small>
-                小憩总会从实际时长里扣掉；超过上限后，连续佩戴会重新计算。填
-                0 表示每次小憩都会中断连续。
+                暂停时间始终从佩戴时长中扣除。单次暂停超过上限时，连续佩戴重新计算。0 表示任何暂停都会中断连续。
               </small>
             </label>
             <h3>记录模板</h3>
@@ -174,13 +173,13 @@ export function JournalOptions({
                   className="text-button"
                   onClick={() => setTemplate(null)}
                 >
-                  不编辑了
+                  取消
                 </button>
               </div>
             )}
             <h3>装备档案</h3>
             <p className="settings-hint">
-              归档后不再出现在新的记录选项里，但历史和统计会保留。
+              归档后不再出现在新记录的选项中，历史数据和统计保留。
             </p>
             <div className="settings-option-list">
               {draft.gears.map((g) => (
@@ -279,7 +278,7 @@ export function JournalOptions({
                   保留装备到草稿
                 </button>
                 <button className="text-button" onClick={() => setGear(null)}>
-                  不编辑了
+                  取消
                 </button>
               </div>
             )}
@@ -318,7 +317,7 @@ export function JournalOptions({
                 }
               }}
             >
-              {busy ? "正在保存…" : "保存这些设置"}
+              {busy ? "正在保存…" : "保存"}
             </button>
           </fieldset>
         </Modal>

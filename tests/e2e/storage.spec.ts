@@ -10,7 +10,7 @@ async function nav(page: Page, name: string) {
 async function dimensions(page: Page) {
   await nav(page, "日历");
   await page.getByRole("button", { name: "时间线", exact: true }).click();
-  const photos = page.getByRole("button", { name: "看这张照片", exact: true });
+  const photos = page.getByRole("button", { name: "查看照片", exact: true });
   const sizes: number[] = [];
   for (let i = 0; i < (await photos.count()); i++) {
     await photos.nth(i).click();
@@ -53,10 +53,10 @@ for (const mode of ["compressed", "thumbnail"] as const) {
     await page.goto("/");
     await page.getByLabel("设置密码").fill("test-password");
     await page.getByLabel("确认密码", { exact: true }).fill("test-password");
-    await page.getByRole("button", { name: "开启手记" }).click();
+    await page.getByRole("button", { name: "创建" }).click();
     await nav(page, "设置");
     await expect(
-      page.getByText("应用已缓存，可以离线使用", { exact: true }),
+      page.getByText("已缓存，可离线使用", { exact: true }),
     ).toBeVisible();
     await context.setOffline(true);
     const buffer = await sharp({
@@ -76,18 +76,18 @@ for (const mode of ["compressed", "thumbnail"] as const) {
           })),
         );
       await expect(
-        page.getByRole("button", { name: "收进今天", exact: true }),
+        page.getByRole("button", { name: "保存记录", exact: true }),
       ).toBeEnabled();
       if (old) await page.getByLabel("记录时间").fill("2020-01-15T12:00");
-      await page.getByRole("button", { name: /再写两句/ }).click();
+      await page.getByRole("button", { name: /备注、标签和状态/ }).click();
       await page
         .getByLabel("备注", { exact: true })
         .fill(old ? "保留旧记录" : "保留新记录");
-      await page.getByRole("button", { name: "收进今天", exact: true }).click();
+      await page.getByRole("button", { name: "保存记录", exact: true }).click();
       await expect(
         page
           .getByRole("navigation")
-          .getByRole("button", { name: "今天", exact: true }),
+          .getByRole("button", { name: "首页", exact: true }),
       ).toHaveAttribute("aria-current", "page");
     }
     await nav(page, "设置");
@@ -102,7 +102,7 @@ for (const mode of ["compressed", "thumbnail"] as const) {
     await page.getByRole("button", { name: "先导出完整备份" }).click();
     await page.getByLabel("备份密码", { exact: true }).fill("backup-password");
     await page.getByLabel("再次输入备份密码").fill("backup-password");
-    await page.getByRole("button", { name: "开始打包" }).click();
+    await page.getByRole("button", { name: "生成备份" }).click();
     const link = page.getByRole("link", { name: /直接下载/ });
     await expect(link).toBeVisible();
     await page.evaluate(() => {
@@ -120,7 +120,7 @@ for (const mode of ["compressed", "thumbnail"] as const) {
     await page.getByRole("button", { name: "先导出完整备份" }).click();
     await page.getByLabel("备份密码", { exact: true }).fill("backup-password");
     await page.getByLabel("再次输入备份密码").fill("backup-password");
-    await page.getByRole("button", { name: "开始打包" }).click();
+    await page.getByRole("button", { name: "生成备份" }).click();
     await expect(link).toBeVisible();
     await page.evaluate(() => {
       (window as unknown as { cancelShare: boolean }).cancelShare = false;
@@ -164,7 +164,7 @@ for (const mode of ["compressed", "thumbnail"] as const) {
     await page.getByRole("button", { name: "先导出完整备份" }).click();
     await page.getByLabel("备份密码", { exact: true }).fill("backup-password");
     await page.getByLabel("再次输入备份密码").fill("backup-password");
-    await page.getByRole("button", { name: "开始打包" }).click();
+    await page.getByRole("button", { name: "生成备份" }).click();
     await expect(
       page.getByRole("button", { name: "保存备份文件", exact: true }),
     ).toBeVisible();
@@ -186,18 +186,18 @@ for (const mode of ["compressed", "thumbnail"] as const) {
       2400,
     ]);
     await nav(page, "设置");
-    await page.getByRole("button", { name: "用备份恢复" }).click();
+    await page.getByRole("button", { name: "从备份恢复" }).click();
     await page.getByLabel("选择备份文件").setInputFiles({
       name: "original.plog",
       mimeType: "application/octet-stream",
       buffer: Buffer.from(bytes),
     });
     await page.getByLabel("备份密码", { exact: true }).fill("backup-password");
-    await page.getByRole("button", { name: "检查备份" }).click();
-    await expect(page.getByText("备份检查通过", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "校验备份" }).click();
+    await expect(page.getByText("校验通过", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "覆盖并恢复" }).click();
     await expect(
-      page.getByText("记录和照片已经完整恢复。", { exact: true }),
+      page.getByText("已恢复全部记录和照片。", { exact: true }),
     ).toBeVisible();
     await page.getByRole("button", { name: "关闭", exact: true }).click();
     expect(await dimensions(page)).toEqual([2400, 2400, 2400]);

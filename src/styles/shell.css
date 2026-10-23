@@ -34,16 +34,6 @@
   color: var(--ink);
 }
 
-.brand small {
-  display: block;
-  margin-top: 5px;
-  color: var(--ink-faint);
-  font-family: var(--sans);
-  font-size: 9.5px;
-  font-weight: 400;
-  letter-spacing: 0.22em;
-}
-
 .brand-mark {
   display: grid;
   flex-shrink: 0;
@@ -115,22 +105,6 @@ main {
   font-size: 10px;
   letter-spacing: 0.12em;
   white-space: nowrap;
-}
-
-.page-footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 38px;
-  color: var(--ink-faint);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-}
-
-.page-footer svg {
-  color: var(--moss);
-  opacity: 0.8;
 }
 
 /* ---------- 纸页 / 卡片 ---------- */
@@ -607,16 +581,6 @@ main {
   height: 52px;
   font-size: 27px;
   border-radius: var(--radius-sm);
-}
-
-.auth-brand small {
-  display: block;
-  margin-top: 6px;
-  color: var(--ink-faint);
-  font-family: var(--sans);
-  font-size: 9px;
-  font-weight: 400;
-  letter-spacing: 0.28em;
 }
 
 .auth-intro {

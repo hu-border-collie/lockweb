@@ -159,7 +159,7 @@ function credential(value: Credential | null): PublicKeyCredential {
     !("rawId" in value) ||
     !("getClientExtensionResults" in value)
   )
-    throw new Error("系统没有返回通行密钥，请使用主密码");
+    throw new Error("系统没有返回通行密钥，请使用密码");
   return value as PublicKeyCredential;
 }
 async function verifyClient(
@@ -250,7 +250,7 @@ export async function authorizeQuickEnrollment(
     !snapshot.config ||
     configText(snapshot.config) !== configText(vault.config)
   )
-    throw new Error("密码或保险库已在另一窗口改变，请重新解锁");
+    throw new Error("密码或本机数据已在另一窗口改变，请重新解锁");
   const key = await unlockVault(snapshot.config, password);
   abort(signal);
   await ensureConfig(snapshot.config, vault.database, signal);
@@ -299,7 +299,7 @@ export async function createQuickCredential(
   signal: AbortSignal,
 ): Promise<PendingQuickUnlock> {
   checkGrant(grant, signal);
-  if (!WINDOWS.includes(windowHours)) throw new Error("快速解锁窗口无效");
+  if (!WINDOWS.includes(windowHours)) throw new Error("快速解锁有效期无效");
   const origin = location.origin,
     rpId = location.hostname,
     challenge = crypto.getRandomValues(new Uint8Array(32)),
@@ -316,7 +316,7 @@ export async function createQuickCredential(
           user: {
             id: crypto.getRandomValues(new Uint8Array(32)),
             name: `private-log-${grant.config.id.slice(0, 8)}`,
-            displayName: "私记 · 一册自己的手记",
+            displayName: "私记",
           },
           pubKeyCredParams: [{ type: "public-key", alg: -7 }],
           authenticatorSelection: {
@@ -337,7 +337,7 @@ export async function createQuickCredential(
       typeof response.getAuthenticatorData !== "function" ||
       response.getPublicKeyAlgorithm() !== -7
     )
-      throw new Error("此环境无法验证通行密钥，请使用主密码");
+      throw new Error("此环境无法验证通行密钥，请使用密码");
     await verifyClient(
       response.clientDataJSON,
       "webauthn.create",
@@ -348,7 +348,7 @@ export async function createQuickCredential(
     const publicKey = response.getPublicKey();
     if (!publicKey || c.getClientExtensionResults().prf?.enabled !== true)
       throw new Error(
-        "此通行密钥无法用于快速解锁，请继续使用主密码。可在系统密码设置中删除刚创建的通行密钥。",
+        "此通行密钥无法用于快速解锁，请继续使用密码。可在系统密码设置中删除刚创建的通行密钥。",
       );
     await crypto.subtle.importKey(
       "spki",
@@ -382,7 +382,7 @@ async function assertion(
 ) {
   abort(signal);
   if (location.origin !== target.origin || location.hostname !== target.rpId)
-    throw new Error("站点已改变，请使用主密码");
+    throw new Error("站点已改变，请使用密码");
   const challenge = crypto.getRandomValues(new Uint8Array(32));
   beginSystemDialog();
   try {
@@ -439,7 +439,7 @@ async function assertion(
     )
       throw new Error("通行密钥签名验证失败");
     const result = c.getClientExtensionResults().prf?.results?.first;
-    if (!result) throw new Error("此通行密钥无法用于快速解锁，请使用主密码");
+    if (!result) throw new Error("此通行密钥无法用于快速解锁，请使用密码");
     const secret = new Uint8Array(
       result instanceof ArrayBuffer
         ? result
@@ -545,7 +545,7 @@ export async function ensureConfig(
   const current = await getConfig(database);
   abort(signal);
   if (!current || configText(current) !== configText(config))
-    throw new Error("密码或保险库已改变，请重新输入主密码");
+    throw new Error("密码或本机数据已改变，请重新输入密码");
 }
 async function authenticatedWindow(
   key: CryptoKey,
@@ -563,7 +563,7 @@ async function authenticatedWindow(
       stamp.expiresAt !== null &&
       (Date.now() < stamp.authorizedAt || Date.now() >= stamp.expiresAt))
   )
-    throw new Error("快速解锁窗口已过期或无效，请输入主密码");
+    throw new Error("快速解锁有效期已过期或无效，请输入密码");
 }
 async function quickGuard(
   config: VaultConfig,
@@ -584,7 +584,7 @@ async function quickGuard(
       !equal(raw.wrapped.iv, binding.wrapped.iv) ||
       !equal(raw.wrapped.data, binding.wrapped.data)
     )
-      throw new Error("快速解锁绑定已撤销或改变，请输入主密码");
+      throw new Error("快速解锁绑定已撤销或改变，请输入密码");
     await Dexie.waitFor(authenticatedWindow(key, raw));
     abort(signal);
   });
@@ -596,7 +596,7 @@ export async function unlockWithQuickBinding(
   database: PrivateDB = db,
 ) {
   if (!bindingCurrent(binding, config, location.origin, location.hostname))
-    throw new Error("快速解锁窗口已过期，请输入主密码");
+    throw new Error("快速解锁有效期已过期，请输入密码");
   const secret = await assertion(binding, signal),
     wrapper = await wrappingKey(secret, binding);
   abort(signal);
@@ -632,7 +632,7 @@ export async function unlockWithPassword(
         b = (await database.meta.get(QUICK_UNLOCK_META))?.value;
       abort(signal);
       if (!current || configText(current) !== configText(config))
-        throw new Error("保险库已改变");
+        throw new Error("本机数据已改变");
       if (
         !validBinding(b) ||
         b.configFingerprint !== fingerprint ||
@@ -667,10 +667,10 @@ export async function unlockWithPassword(
 export function quickError(error: unknown) {
   const e = error as Error;
   if (e.name === "NotAllowedError" || e.name === "AbortError")
-    return "系统验证已取消或未完成，可继续使用主密码。";
+    return "系统验证已取消或未完成，可继续使用密码。";
   if (e.name === "NotSupportedError" || e.name === "SecurityError")
-    return "当前环境不支持此快速解锁方式，请使用主密码。";
+    return "当前环境不支持此快速解锁方式，请使用密码。";
   if (e.name === "OperationError")
-    return "快速解锁密钥无法解密，请输入主密码后重新绑定。";
-  return e.message || "快速解锁失败，请使用主密码。";
+    return "快速解锁密钥无法解密，请输入密码后重新绑定。";
+  return e.message || "快速解锁失败，请使用密码。";
 }

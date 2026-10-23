@@ -114,7 +114,7 @@ export async function createVault(
   await database.transaction("rw", database.meta, async () => {
     check();
     if (await database.meta.get("vault"))
-      throw new Error("保险库已存在，请解锁");
+      throw new Error("本机数据已存在，请解锁");
     await database.meta.bulkPut([
       { key: "vault", value: vault.config },
       { key: "revision", value: 0 },
@@ -182,7 +182,7 @@ export class Vault {
       async () => {
         const config = await getConfig(this.database);
         if (config?.id !== this.config.id)
-          throw new Error("保险库已改变，请重新打开应用");
+          throw new Error("本机数据已改变，请重新打开应用");
         const current = (await this.database.meta.get("revision"))?.value ?? 0;
         if (current !== revision)
           throw new Error("记录已在另一窗口改变，请刷新后重试");
@@ -197,7 +197,7 @@ export class Vault {
         (await getConfig(this.database))?.id !== this.config.id ||
         ((await this.database.meta.get("revision"))?.value ?? 0) !== revision
       )
-        throw new Error("记录或保险库已改变，请重新备份并分析");
+        throw new Error("记录或本机数据已改变，请重新备份并分析");
     });
   }
   async saveEntry(entry: Entry, photos: PhotoInput[], revision: number) {
@@ -217,7 +217,7 @@ export class Vault {
       entry.timestamp > Date.now() ||
       entry.timestamp < 0
     )
-      throw new Error("打卡时间无效或在未来");
+      throw new Error("记录时间无效或在未来");
     if (!entry.photoIds.length) throw new Error("请至少保留一张照片");
     if (
       entry.note.length > 10000 ||
@@ -491,10 +491,10 @@ export class Vault {
     const draw = snap.fate.draws.find((d) => d.id === drawId);
     const entry = snap.entries.find((e) => e.id === entryId);
     if (!draw || !entry || draw.day !== today || dayKey(entry.timestamp) !== today)
-      throw new Error("请选择今日判定和今日打卡");
-    if (draw.attachedEntryId) throw new Error("这次判定已写入打卡");
+      throw new Error("请选择今日结果和今日记录");
+    if (draw.attachedEntryId) throw new Error("这次结果已写入记录");
     const note = [entry.note, fateNote(draw)].filter(Boolean).join("\n");
-    if (note.length > 10000) throw new Error("打卡备注过长，请先缩短备注");
+    if (note.length > 10000) throw new Error("记录备注过长，请先缩短备注");
     const entryRow = { id: entry.id, sealed: await sealJSON(this.key, { ...entry, note, updatedAt: Date.now() }, `entry:${entry.id}`) };
     const fate = { ...snap.fate, draws: snap.fate.draws.map((d) => d.id === drawId ? { ...d, attachedEntryId: entry.id } : d) };
     const fateRow = { id: FATE_META, sealed: await sealJSON(this.key, fate, FATE_META) };
@@ -521,7 +521,7 @@ export class Vault {
     check: () => void = () => {},
   ) {
     if (binding.vaultId !== this.config.id)
-      throw new Error("保险库已改变，请重新解锁");
+      throw new Error("本机数据已改变，请重新解锁");
     await this.mutate(revision, async () => {
       check();
       await this.database.meta.put({ key: QUICK_UNLOCK_META, value: binding });

@@ -120,7 +120,7 @@ export function BiometricSettings({
       <div className="card quick-unlock">
         <h2>面容 / 指纹与设备验证</h2>
         <p className="quick-unlock-intro">
-          用系统通行密钥确认是你，再解开本地密钥。系统可能用面容、指纹或设备密码；通行密钥可能跟着系统账号同步。应用不读取生物信息，也不上传记录。
+          通过系统通行密钥（面容、指纹或设备密码）验证后解开本机数据。通行密钥可能随系统账号同步。应用不读取生物信息。
         </p>
         <div className="quick-unlock-state">
           <span
@@ -140,8 +140,8 @@ export function BiometricSettings({
             {capable === null
               ? "正在检查系统验证能力…"
               : capable
-                ? "这台设备可以试试；验证成功才会保存绑定。"
-                : "这里用不了快速解锁，密码仍然可以打开。"}
+                ? "可以启用。验证成功后才会保存。"
+                : "此环境不支持快速解锁，可继续使用密码。"}
           </p>
         </div>
         <button
@@ -170,7 +170,7 @@ export function BiometricSettings({
                 await refresh();
                 if (alive.current)
                   setMessage(
-                    "快速解锁已经停用。系统里的通行密钥可以到系统密码设置里手动删掉。",
+                    "已停用快速解锁。系统中的通行密钥可在系统密码设置中删除。",
                   );
               } catch (e) {
                 fail(e, c);
@@ -197,8 +197,7 @@ export function BiometricSettings({
         <Modal title="启用快速解锁" onClose={close}>
           <fieldset className="settings-sheet-form" disabled={busy}>
             <p className="settings-note">
-              默认永久有效，每次解锁仍需系统验证；也可以选择 1 天 / 7 天 / 30
-              天。输入正确主密码会重新开始计时，快速解锁本身不会延期。取消任意一步都不改变现有绑定；修改密码、清空或恢复会撤销绑定。
+              默认永久有效，每次解锁都需系统验证；也可设为 1 天、7 天或 30 天。输入密码会重新计算有效期。更换密码、清空或恢复会撤销绑定。
             </p>
             {!grant && (
               <>
@@ -223,7 +222,7 @@ export function BiometricSettings({
                   </select>
                 </label>
                 <label className="field">
-                  确认当前主密码
+                  确认当前密码
                   <input
                     type="password"
                     autoComplete="current-password"
@@ -262,7 +261,7 @@ export function BiometricSettings({
             )}
             {grant && (
               <>
-                <p className="success">主密码已确认（5 分钟内有效）</p>
+                <p className="success">密码已确认，5 分钟内有效</p>
                 {!pending && (
                   <button
                     className="primary wide"
@@ -288,7 +287,7 @@ export function BiometricSettings({
                 {pending && (
                   <>
                     <p className="settings-hint">
-                      通行密钥已经建好。再做一次系统验证，确认能解开密钥后才会启用。
+                      通行密钥已创建。再完成一次系统验证即可启用。
                     </p>
                     <button
                       className="primary wide"
@@ -302,7 +301,7 @@ export function BiometricSettings({
                             setGrant(null);
                             setPending(null);
                             setMessage(
-                              "快速解锁已经启用，下次合上手记就能用系统验证打开。",
+                              "快速解锁已启用，下次锁定后可用系统验证解锁。",
                             );
                           }
                         } catch (e) {
@@ -346,7 +345,7 @@ export function BiometricSettings({
                     setError("");
                   }}
                 >
-                  重新确认主密码
+                  重新确认密码
                 </button>
               </>
             )}

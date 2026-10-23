@@ -89,8 +89,7 @@ export function ComparePhotos({
   return (
     <Modal title="照片对比" onClose={onClose}>
       <p className="muted">
-        相隔 {duration(Math.abs(photos[0].timestamp - photos[1].timestamp))} ·
-        两张照片一起看
+        相隔 {duration(Math.abs(photos[0].timestamp - photos[1].timestamp))}
       </p>
       <div className="segmented compare-modes">
         <button
@@ -99,7 +98,7 @@ export function ComparePhotos({
           aria-pressed={mode === "side"}
           onClick={() => setMode("side")}
         >
-          并排看
+          并排
         </button>
         <button
           type="button"
@@ -107,7 +106,7 @@ export function ComparePhotos({
           aria-pressed={mode === "split"}
           onClick={() => setMode("split")}
         >
-          卷帘看
+          卷帘
         </button>
       </div>
       {error && (
@@ -199,7 +198,7 @@ export function ComparePhotos({
           )}
           {mode === "split" && (
             <label className="field compare-range">
-              对比线
+              分界线位置
               <input
                 type="range"
                 min={0}
@@ -235,7 +234,7 @@ export function ComparePhotos({
           </button>
         </>
       ) : (
-        !error && <p className="muted">正在解开两张照片…</p>
+        !error && <p className="muted">正在解密照片…</p>
       )}
     </Modal>
   );

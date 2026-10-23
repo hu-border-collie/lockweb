@@ -143,7 +143,7 @@ export function StorageManager({
         disabled={busy}
         onClick={() => void analyze()}
       >
-        {busy && !plan ? "正在算…" : "分析照片占用"}
+        {busy && !plan ? "正在统计…" : "分析照片占用"}
       </button>
       {analysis && !validAnalysis && (
         <p className="muted">数据已变化，请重新分析。</p>
@@ -264,7 +264,7 @@ export function StorageManager({
             记录、备注与时段保留。
           </p>
           <p className="settings-note">
-            逐张保存；停止、离开设置或合上手记后不再处理后续照片。已完成部分保留，恢复原大图需要用归档前的备份覆盖整本手记。
+            逐张保存；停止、离开设置或锁定后不再处理后续照片。已完成部分保留，恢复原大图需要用归档前的备份覆盖全部数据。
           </p>
           <label className="storage-confirm">
             <input

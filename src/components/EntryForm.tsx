@@ -85,7 +85,7 @@ export const EntryForm = memo(function EntryForm({
   }, []);
   async function add(files: FileList | null) {
     if (!files?.length) return;
-    setBusy("正在整理照片…");
+    setBusy("正在处理照片…");
     setError("");
     const results: PhotoInput[] = [];
     let failed = "";
@@ -105,7 +105,7 @@ export const EntryForm = memo(function EntryForm({
     }
   }
   async function save() {
-    setBusy("正在锁进本机…");
+    setBusy("正在加密保存…");
     setError("");
     try {
       const timestamp =
@@ -176,8 +176,7 @@ export const EntryForm = memo(function EntryForm({
           <Camera size={56} strokeWidth={1} />
         </div>
         <div className="capture-copy">
-          <h3>{entry ? "更新照片" : "拍照或选照片"}</h3>
-          <p>照片会和时间一起，收进今天。</p>
+          <h3>{entry ? "照片" : "添加照片"}</h3>
         </div>
         <div className="capture-buttons">
           <button
@@ -189,7 +188,7 @@ export const EntryForm = memo(function EntryForm({
             }}
           >
             <Camera size={19} strokeWidth={1.6} />
-            拍一张
+            拍照
           </button>
           <button
             className="secondary"
@@ -207,7 +206,7 @@ export const EntryForm = memo(function EntryForm({
       {kept.length + photos.length > 0 && (
         <section className="entry-photos">
           <div className="section-line">
-            <h2>这些照片</h2>
+            <h2>已选照片</h2>
             <span className="muted">{kept.length + photos.length} 张</span>
           </div>
           <div className="draft-photos">
@@ -218,7 +217,7 @@ export const EntryForm = memo(function EntryForm({
                   className="photo-edit"
                   disabled={!!busy}
                   onClick={async () => {
-                    setBusy("正在读照片…");
+                    setBusy("正在读取照片…");
                     setError("");
                     try {
                       const blob = await vault.photo(p);
@@ -231,12 +230,12 @@ export const EntryForm = memo(function EntryForm({
                     }
                   }}
                 >
-                  <span>遮一下</span>
+                  <span>打码</span>
                 </button>
                 <button
                   disabled={!!busy}
                   className="remove-photo"
-                  aria-label="拿掉已有的照片"
+                  aria-label="移除照片"
                   onClick={() => setKept(kept.filter((i) => i !== p))}
                 >
                   <X size={14} strokeWidth={2} />
@@ -253,12 +252,12 @@ export const EntryForm = memo(function EntryForm({
                     setBrush({ id: p.id, blob: p.full, existing: false })
                   }
                 >
-                  <span>遮一下</span>
+                  <span>打码</span>
                 </button>
                 <button
                   disabled={!!busy}
                   className="remove-photo"
-                  aria-label="拿掉新照片"
+                  aria-label="移除新照片"
                   onClick={() => setPhotos(photos.filter((i) => i.id !== p.id))}
                 >
                   <X size={14} strokeWidth={2} />
@@ -286,14 +285,14 @@ export const EntryForm = memo(function EntryForm({
             onChange={(e) => {
               const t = settings.templates.find((t) => t.id === e.target.value);
               if (t) {
-                if (note && !confirm("套用模板会替换现在的备注，继续吗？"))
+                if (note && !confirm("套用模板会替换当前备注。继续？"))
                   return;
                 setNote(t.text);
                 setDetails(true);
               }
             }}
           >
-            <option value="">选一个模板</option>
+            <option value="">选择模板</option>
             {settings.templates.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
@@ -329,9 +328,9 @@ export const EntryForm = memo(function EntryForm({
       </div>
       {(settings.gears.length > 0 || gearId) && (
         <label className="field">
-          记录装备
+          装备
           <select value={gearId} onChange={(e) => setGearId(e.target.value)}>
-            <option value="">不选装备</option>
+            <option value="">不指定</option>
             {settings.gears
               .filter((g) => !g.archived || g.id === gearId)
               .map((g) => (
@@ -358,7 +357,7 @@ export const EntryForm = memo(function EntryForm({
               </option>
             ))}
           </select>
-          <small>只统计明确关联、且真的在佩戴时的记录。</small>
+          <small>只有关联了时段、且处于佩戴中的记录会计入时长和舒适度统计。</small>
         </label>
       )}
       <button
@@ -367,7 +366,7 @@ export const EntryForm = memo(function EntryForm({
         aria-expanded={details}
       >
         <span>
-          再写两句 <small>可选</small>
+          备注、标签和状态 <small>可选</small>
         </span>
         <ChevronDown size={18} strokeWidth={1.6} />
       </button>
@@ -379,7 +378,6 @@ export const EntryForm = memo(function EntryForm({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               maxLength={10000}
-              placeholder="此刻的感觉，随便写写。"
               rows={3}
             />
           </label>
@@ -389,7 +387,7 @@ export const EntryForm = memo(function EntryForm({
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               maxLength={500}
-              placeholder="用逗号分开，比如：日常，清洁"
+              placeholder="用逗号分隔，例如：日常，清洁"
             />
           </label>
           <label className="field">
@@ -417,7 +415,7 @@ export const EntryForm = memo(function EntryForm({
                 </button>
               ))}
             </div>
-            <small>1 不太舒服 · 5 很舒服 · 再点一下取消</small>
+            <small>1 很不舒服，5 很舒服。再点一次取消。</small>
           </div>
         </div>
       )}
@@ -437,10 +435,10 @@ export const EntryForm = memo(function EntryForm({
         onClick={() => void save()}
       >
         <Check size={20} strokeWidth={1.8} />
-        {busy || "收进今天"}
+        {busy || (entry ? "保存修改" : "保存记录")}
       </button>
       <p className="privacy-caption">
-        只存到这台设备 · 不会开始新的佩戴计时
+        仅保存在本机 · 不会开始佩戴计时
       </p>
       {entry && onDelete && (
         <button
@@ -448,7 +446,7 @@ export const EntryForm = memo(function EntryForm({
           disabled={!!busy}
           onClick={() => onDelete(entry)}
         >
-          删掉这一页
+          删除记录
         </button>
       )}
       <button className="text-button wide" disabled={!!busy} onClick={onCancel}>

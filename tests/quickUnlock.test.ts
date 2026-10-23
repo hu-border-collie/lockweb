@@ -178,7 +178,7 @@ describe("PRF quick unlock", () => {
         new AbortController().signal,
         database,
       ),
-    ).rejects.toThrow("窗口");
+    ).rejects.toThrow("有效期");
   });
   it("keeps password access on renewal failure and rolls back a failed revocation", async () => {
     const binding = await enroll();
@@ -329,7 +329,7 @@ describe("PRF quick unlock", () => {
         new AbortController().signal,
         database,
       ),
-    ).rejects.toThrow("窗口");
+    ).rejects.toThrow("有效期");
     await database.meta.put({ key: QUICK_UNLOCK_META, value: binding });
     await unlockWithPassword(
       vault.config,
