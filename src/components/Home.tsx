@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, type ReactNode } from "react";
 import {
   Timer,
   Plus,
@@ -56,11 +56,13 @@ export interface HomeProps {
   paused: boolean;
   gearId: string;
   setGearId: (id: string) => void;
+  gearManager: ReactNode;
   busy: boolean;
   ready: boolean;
   onToggleWear: () => Promise<void>;
   onTogglePause: () => Promise<void>;
   onOpenManage: () => void;
+  onEditActiveGear: (session: WearSession) => void;
   onOpenWheel: () => void;
   onNavigate: (tab: string) => void;
   onEdit: (entry: Entry) => void;
@@ -78,11 +80,13 @@ export const Home = memo(function Home({
   paused,
   gearId,
   setGearId,
+  gearManager,
   busy,
   ready,
   onToggleWear,
   onTogglePause,
   onOpenManage,
+  onEditActiveGear,
   onOpenWheel,
   onNavigate,
   onEdit,
@@ -164,6 +168,17 @@ export const Home = memo(function Home({
             </button>
           )}
         </div>
+        {gearManager}
+        {active && (active.gearId || settings.gears.some((gear) => !gear.archived)) && (
+          <button
+            type="button"
+            className="secondary wide"
+            disabled={busy}
+            onClick={() => onEditActiveGear(active)}
+          >
+            {active.gearId ? "调整本次锁具" : "关联本次锁具"}
+          </button>
+        )}
         {!active && settings.gears.some((g) => !g.archived) && (
           <label className="field hero-gear">
             装备

@@ -9,12 +9,11 @@ import type {
   JournalSettings,
   QuickUnlockBinding,
 } from "./models";
-import { defaultSettings, QUICK_UNLOCK_META } from "./models";
+import { defaultSettings, id, QUICK_UNLOCK_META } from "./models";
 import { validateLinks, validateSettings } from "./journal";
-import { dayKey } from "./time";
+import { dayKey, finishSession, validateSession } from "./time";
 import { validateManifest } from "./backup";
 import { makeVault, sealJSON, openJSON, seal, open } from "./crypto";
-import { validateSession } from "./time";
 import { FATE_META, MAX_FATE_DRAWS, RITUAL_READY, defaultFate, validateFateConfig, validateFateState, pickFate, ritualStatus, fateNote, type FateState, type FateConfig, type FateDraw } from "./fate";
 export class PrivateDB extends Dexie {
   meta!: Table<{ key: string; value: unknown }, string>;
@@ -296,6 +295,31 @@ export class Vault {
         }
       }
       await this.database.sessions.put({ id: session.id, sealed });
+    });
+  }
+  async switchSessionGear(sessionId: string, gearId: string, revision: number) {
+    const { sessions, settings } = await this.snapshot();
+    const active = sessions.find((session) => session.end === null);
+    if (!active || active.id !== sessionId)
+      throw new Error("当前时段已改变，请重新打开后重试");
+    if (active.gearId === gearId || !settings.gears.some(
+      (gear) => gear.id === gearId && !gear.archived,
+    ))
+      throw new Error("请选择另一把可用的锁具");
+
+    const now = Date.now();
+    const ended = finishSession(active, now);
+    const next: WearSession = { id: id(), start: now, end: null, note: "", gearId };
+    validateSession(ended, now);
+    validateSession(next, now);
+    const rows = await Promise.all(
+      [ended, next].map(async (session) => ({
+        id: session.id,
+        sealed: await sealJSON(this.key, session, `session:${session.id}`),
+      })),
+    );
+    await this.mutate(revision, async () => {
+      await this.database.sessions.bulkPut(rows);
     });
   }
   async deleteSession(id: string, revision: number) {

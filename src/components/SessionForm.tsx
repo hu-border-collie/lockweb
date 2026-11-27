@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { ChevronRight } from "lucide-react";
 import type { Vault } from "../lib/db";
 import { userError } from "../lib/db";
 import { id, type WearSession, type JournalSettings } from "../lib/models";
-import { fromInput, localInput } from "../lib/time";
+import { dateTime, duration, fromInput, localInput, totalWear } from "../lib/time";
 export function SessionForm({
   session,
   vault,
@@ -228,5 +229,32 @@ export function SessionForm({
         </button>
       )}
     </fieldset>
+  );
+}
+
+export function SessionRow({
+  session,
+  gearName,
+  now,
+  onEdit,
+}: {
+  session: WearSession;
+  gearName: string;
+  now: number;
+  onEdit: (session: WearSession) => void;
+}) {
+  return (
+    <button type="button" className="session-row" onClick={() => onEdit(session)}>
+      <span>
+        <strong>{dateTime(session.start)}</strong>
+        <small>{session.end === null ? "正在佩戴" : `至 ${dateTime(session.end)}`}</small>
+        <small>{gearName}</small>
+        {session.note && <small>{session.note}</small>}
+      </span>
+      <span>
+        {duration(totalWear([session], now))}
+        <ChevronRight size={16} aria-hidden="true" />
+      </span>
+    </button>
   );
 }

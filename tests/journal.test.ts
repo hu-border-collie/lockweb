@@ -233,6 +233,52 @@ describe("journal extensions", () => {
     await vault.deleteSession("s", 4);
     expect((await vault.snapshot()).entries[0].sessionId).toBeUndefined();
   });
+  it("switches locks atomically and keeps older entries and pauses with their original session", async () => {
+    const prefs = settings();
+    const second = { ...prefs.gears[0], id: "second", name: "Second" };
+    await vault.saveSettings({
+      ...prefs,
+      gears: [...prefs.gears, second, { ...second, id: "archived", archived: true }],
+    }, 0);
+
+    const now = Date.now();
+    const session: WearSession = {
+      id: "s",
+      start: now - 60000,
+      end: null,
+      note: "Original",
+      gearId: "g",
+      breaks: [{ start: now - 5000, end: null }],
+    };
+    await vault.saveSession(session, 1);
+    const record = entry({ gearId: "g", sessionId: session.id });
+    await vault.saveEntry(record, [photo()], 2);
+
+    await expect(vault.switchSessionGear("s", "archived", 3)).rejects.toThrow("可用");
+    await expect(vault.switchSessionGear("s", "second", 2)).rejects.toThrow("另一窗口");
+    expect((await vault.snapshot()).sessions).toEqual([session]);
+
+    const failure = vi.spyOn(db.meta, "put").mockRejectedValueOnce(
+      new DOMException("storage full", "QuotaExceededError"),
+    );
+    await expect(vault.switchSessionGear("s", "second", 3)).rejects.toThrow();
+    failure.mockRestore();
+    expect((await vault.snapshot()).sessions).toEqual([session]);
+
+    await vault.switchSessionGear("s", "second", 3);
+    const snap = await vault.snapshot();
+    const previous = snap.sessions.find((item) => item.id === "s");
+    const current = snap.sessions.find((item) => item.end === null);
+    expect(snap.revision).toBe(4);
+    expect(snap.sessions).toHaveLength(2);
+    expect(previous).toEqual({
+      ...session,
+      end: current?.start,
+      breaks: [{ start: now - 5000, end: current?.start }],
+    });
+    expect(current).toMatchObject({ gearId: "second", note: "", end: null });
+    expect(snap.entries).toEqual([record]);
+  });
   it("rejects missing gear/session references and rolls back settings with a failed restore", async () => {
     const prefs = settings();
     await vault.saveSettings(prefs, 0);

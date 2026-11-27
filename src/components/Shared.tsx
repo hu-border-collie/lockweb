@@ -279,17 +279,21 @@ export const RecordCard = memo(function RecordCard({
   vault,
   onEdit,
   onView,
+  gearName,
 }: {
   entry: Entry;
   vault: Vault;
   onEdit: (e: Entry) => void;
   onView: (ids: string[], index: number) => void;
+  gearName?: string;
 }) {
   return (
     <article className="card record">
       <div className="record-heading">
         <div>
-          <strong className="record-time">{clock(entry.timestamp)}</strong>
+          <strong className="record-time">
+            {gearName === undefined ? clock(entry.timestamp) : dateTime(entry.timestamp)}
+          </strong>
           <span className="record-status">
             {entry.wearing === "on"
               ? "佩戴中"
@@ -297,6 +301,7 @@ export const RecordCard = memo(function RecordCard({
                 ? "未佩戴"
                 : "未记录状态"}
             {entry.comfort ? " · 舒适度 " + entry.comfort + "/5" : ""}
+            {gearName !== undefined && ` · ${gearName}`}
           </span>
         </div>
         <button

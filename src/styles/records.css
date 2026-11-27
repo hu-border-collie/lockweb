@@ -474,6 +474,25 @@
 
 /* ---------- 时段行（管理弹层里的一页时段） ---------- */
 
+.gear-history {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.gear-history .field,
+.gear-history-summary {
+  margin: 0;
+}
+
+.gear-history .segmented {
+  margin: 0;
+}
+
+.gear-history .record {
+  margin: 0;
+}
+
 .session-row {
   display: flex;
   align-items: center;
