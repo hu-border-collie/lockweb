@@ -24,6 +24,8 @@ export interface WearBreak {
   end: number | null;
   note?: string;
 }
+export const MAX_GEAR_AVATAR_BYTES = 32 * 1024;
+
 export interface Gear {
   id: string;
   name: string;
@@ -33,6 +35,7 @@ export interface Gear {
   started: string;
   note: string;
   archived: boolean;
+  avatar?: string;
 }
 export interface CheckinTemplate {
   id: string;

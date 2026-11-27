@@ -183,6 +183,39 @@
   opacity: 0.8;
 }
 
+.hero-gear-manager {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 12px;
+  padding: 5px 0;
+  color: var(--ink);
+  text-align: left;
+}
+
+.hero-gear-manager-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hero-gear-manager strong,
+.hero-gear-manager small {
+  display: block;
+}
+
+.hero-gear-manager small,
+.hero-gear-manager > svg {
+  color: var(--ink-soft);
+}
+
+.hero-gear-manager:focus-visible {
+  outline: 2px solid var(--seal);
+  outline-offset: 2px;
+}
+
 .hero-gear {
   margin: 16px 0 0;
 }

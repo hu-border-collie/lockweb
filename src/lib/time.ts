@@ -157,6 +157,16 @@ export const clock = (ts: number) =>
     hour: "2-digit",
     minute: "2-digit",
   }).format(ts);
+export function finishSession(session: WearSession, end: number): WearSession {
+  return {
+    ...session,
+    end,
+    breaks: session.breaks?.flatMap((pause) =>
+      pause.end === null ? (pause.start < end ? [{ ...pause, end }] : []) : [pause],
+    ),
+  };
+}
+
 export function validateSession(session: WearSession, now = Date.now()) {
   if (
     !Number.isFinite(session.start) ||

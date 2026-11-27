@@ -26,6 +26,7 @@ export const EntryForm = memo(function EntryForm({
   settings,
   sessions,
   active,
+  defaultGearId,
 }: {
   entry?: Entry;
   vault: Vault;
@@ -37,13 +38,15 @@ export const EntryForm = memo(function EntryForm({
   settings: JournalSettings;
   sessions: WearSession[];
   active?: WearSession;
+  defaultGearId?: string;
 }) {
   const [initialTimestamp] = useState(() => entry?.timestamp ?? Date.now());
   const [recordId] = useState(() => entry?.id ?? id());
   const [photos, setPhotos] = useState<PhotoInput[]>([]);
   const [baseRevision] = useState(revision);
+  const gearNames = new Map(settings.gears.map((gear) => [gear.id, gear.name]));
   const [gearId, setGearId] = useState(
-    entry ? (entry.gearId ?? "") : (active?.gearId ?? ""),
+    entry ? (entry.gearId ?? "") : (defaultGearId ?? active?.gearId ?? ""),
   );
   const [sessionId, setSessionId] = useState(
     entry ? (entry.sessionId ?? "") : (active?.id ?? ""),
@@ -350,12 +353,16 @@ export const EntryForm = memo(function EntryForm({
             onChange={(e) => setSessionId(e.target.value)}
           >
             <option value="">不关联</option>
-            {sessions.map((s) => (
-              <option key={s.id} value={s.id}>
-                {dateTime(s.start)}
-                {s.end === null ? "（进行中）" : ""}
-              </option>
-            ))}
+            {sessions.map((session) => {
+              const name = gearNames.get(session.gearId ?? "");
+              return (
+                <option key={session.id} value={session.id}>
+                  {dateTime(session.start)}
+                  {session.end === null ? "（进行中）" : ""}
+                  {name && ` · ${name}`}
+                </option>
+              );
+            })}
           </select>
           <small>只有关联了时段、且处于佩戴中的记录会计入时长和舒适度统计。</small>
         </label>

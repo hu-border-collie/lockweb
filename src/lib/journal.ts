@@ -1,5 +1,6 @@
 import {
   defaultSettings,
+  MAX_GEAR_AVATAR_BYTES,
   type JournalSettings,
   type Entry,
   type WearSession,
@@ -10,6 +11,20 @@ export const validId = (v: unknown): v is string =>
   typeof v === "string" && /^[a-zA-Z0-9-]{1,80}$/.test(v);
 const text = (v: unknown, max: number): v is string =>
   typeof v === "string" && v.length <= max;
+function validGearAvatar(value: unknown): boolean {
+  const prefix = "data:image/jpeg;base64,";
+  if (
+    typeof value !== "string" ||
+    !value.startsWith(prefix + "/9j/") ||
+    value.length > prefix.length + 4 * Math.ceil(MAX_GEAR_AVATAR_BYTES / 3)
+  )
+    return false;
+  const encoded = value.slice(prefix.length);
+  if (encoded.length % 4 || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded))
+    return false;
+  const padding = encoded.endsWith("==") ? 2 : encoded.endsWith("=") ? 1 : 0;
+  return (encoded.length / 4) * 3 - padding <= MAX_GEAR_AVATAR_BYTES;
+}
 export function validateSettings(value: unknown): JournalSettings {
   const s = value as JournalSettings;
   if (
@@ -51,6 +66,7 @@ export function validateSettings(value: unknown): JournalSettings {
       !text(g.size, 200) ||
       !text(g.note, 10000) ||
       typeof g.archived !== "boolean" ||
+      (g.avatar !== undefined && !validGearAvatar(g.avatar)) ||
       ![g.acquired, g.started].every(
         (d) =>
           typeof d === "string" &&

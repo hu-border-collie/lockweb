@@ -1,4 +1,4 @@
-import { id, type PhotoInput } from "./models";
+import { id, MAX_GEAR_AVATAR_BYTES, type PhotoInput } from "./models";
 function load(blob: Blob): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob);
@@ -44,7 +44,7 @@ export async function compressArchiveImage(blob: Blob): Promise<Blob> {
   if (Math.max(img.naturalWidth, img.naturalHeight) <= 1600) return blob;
   return jpeg(img, 1600, 0.78);
 }
-export async function processImage(file: File): Promise<PhotoInput> {
+async function loadPhoto(file: File): Promise<HTMLImageElement> {
   if (file.size > 40 * 1024 * 1024)
     throw new Error("单张照片超过 40 MB，请先缩小照片");
   if (
@@ -74,9 +74,33 @@ export async function processImage(file: File): Promise<PhotoInput> {
   }
   if (img.naturalWidth * img.naturalHeight > 100_000_000)
     throw new Error("照片像素过大，请先缩小");
+  return img;
+}
+
+export async function processImage(file: File): Promise<PhotoInput> {
+  const img = await loadPhoto(file);
   return {
     id: id(),
     full: await jpeg(img, 2560, 0.88),
     thumb: await jpeg(img, 360, 0.72),
   };
+}
+
+export function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x2000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x2000));
+  }
+  return btoa(binary);
+}
+
+export async function processGearAvatar(file: File): Promise<string> {
+  const img = await loadPhoto(file);
+  let thumbnail = await jpeg(img, 192, 0.76);
+  if (thumbnail.size > MAX_GEAR_AVATAR_BYTES)
+    thumbnail = await jpeg(img, 192, 0.55);
+  if (thumbnail.size > MAX_GEAR_AVATAR_BYTES)
+    throw new Error("无法缩小头像，请换一张图片");
+  const bytes = new Uint8Array(await thumbnail.arrayBuffer());
+  return "data:image/jpeg;base64," + bytesToBase64(bytes);
 }

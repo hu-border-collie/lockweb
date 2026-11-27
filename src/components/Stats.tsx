@@ -21,6 +21,7 @@ export const Stats = memo(function Stats({
   sessions,
   now,
   onDay,
+  onOpenGearHistory,
   settings,
   fate,
 }: {
@@ -28,6 +29,7 @@ export const Stats = memo(function Stats({
   sessions: WearSession[];
   now: number;
   onDay: (day: string) => void;
+  onOpenGearHistory: () => void;
   settings: JournalSettings;
   fate: FateState;
 }) {
@@ -302,7 +304,12 @@ export const Stats = memo(function Stats({
         </div>
       </div>
       <div className="card stat-card">
-        <h2>装备使用对比</h2>
+        <div className="section-line">
+          <h2>装备使用对比</h2>
+          <button type="button" className="text-button" onClick={() => onOpenGearHistory()}>
+            查看装备历史
+          </button>
+        </div>
         <p className="muted">
           同一装备的重叠时段合并计算，已扣除暂停。不同装备的时长不相加。
         </p>

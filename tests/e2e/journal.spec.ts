@@ -25,15 +25,36 @@ test("offline journal tools: encrypted preferences, breaks, redaction, stealth, 
   await page.getByLabel("模板名称").fill("日常检查");
   await page.getByLabel("模板内容").fill("私密测试问题：正常");
   await page.getByRole("button", { name: "保留模板到草稿" }).click();
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await nav("首页");
+  await page.getByRole("button", { name: "添加装备" }).click();
   await page.getByRole("button", { name: "新增装备" }).click();
   await page.getByLabel("装备名称").fill("测试装备");
   await page.getByLabel("材质", { exact: true }).fill("金属");
+  await page.getByLabel("选择装备头像").setInputFiles(path.resolve("tests/fixture.jpg"));
+  const preview = page.locator(".gear-avatar-editor img");
+  await expect(preview).toHaveJSProperty("naturalWidth", 192);
+  await expect(preview).toHaveClass("concealed");
+  const avatarPreview = page.locator(".gear-avatar-editor .gear-avatar");
+  await avatarPreview.scrollIntoViewIfNeeded();
+  const avatarRect = (await avatarPreview.boundingBox())!;
+  await page.mouse.move(
+    avatarRect.x + avatarRect.width / 2,
+    avatarRect.y + avatarRect.height / 2,
+  );
+  await page.mouse.down();
+  await expect(preview).not.toHaveClass("concealed");
+  await page.mouse.up();
+  await expect(preview).toHaveClass("concealed");
+  const avatar = await preview.getAttribute("src");
   await page.getByRole("button", { name: "保留装备到草稿" }).click();
-  await page.getByRole("button", { name: "保存" }).click();
+  await page.getByRole("button", { name: "保存", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await nav("首页");
   await page.getByLabel("装备").selectOption({ label: "测试装备" });
   await page.getByRole("button", { name: "开始佩戴", exact: true }).click();
+  const homeAvatar = page.getByRole("button", { name: "测试装备 装备管理" }).locator("img");
+  await expect(homeAvatar).toHaveAttribute("src", avatar!);
+  await expect(homeAvatar).toHaveClass("concealed");
   await page.getByRole("button", { name: "暂停", exact: true }).click();
   await expect(page.getByText("已暂停", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "继续佩戴", exact: true }).click();
@@ -197,6 +218,15 @@ test("offline journal tools: encrypted preferences, breaks, redaction, stealth, 
   const backup = info.outputPath("journal.plog");
   await (await backupDownload).saveAs(backup);
   await page.getByRole("button", { name: "关闭", exact: true }).click();
+  await page.getByRole("button", { name: "模板、快捷标签与装备" }).click();
+  const gearRow = page.getByRole("button", { name: "测试装备", exact: true });
+  await gearRow.click();
+  await page.getByRole("button", { name: "移除头像" }).click();
+  await page.getByRole("button", { name: "保留装备到草稿" }).click();
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.getByRole("button", { name: "模板、快捷标签与装备" }).click();
+  await expect(gearRow.locator("img")).toHaveCount(0);
+  await page.getByRole("button", { name: "关闭", exact: true }).click();
   await page.getByRole("button", { name: "清空所有记录" }).click();
   await page.getByLabel("输入「清空」确认").fill("清空");
   await page.getByRole("button", { name: "确认清空" }).click();
@@ -224,9 +254,7 @@ test("offline journal tools: encrypted preferences, breaks, redaction, stealth, 
   await expect(
     page.getByRole("button", { name: "日常检查", exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "测试装备", exact: true }),
-  ).toBeVisible();
+  await expect(gearRow.locator("img")).toHaveAttribute("src", avatar!);
   await page.getByRole("button", { name: "关闭", exact: true }).click();
   await nav("日历");
   const restoredThumb = page.locator("article.record .photo-thumb").first();
@@ -306,4 +334,86 @@ test("keeps a comparison selection when choosing a photo in another month", asyn
   await expect(
     page.getByRole("dialog", { name: "照片对比" }).locator("img"),
   ).toHaveCount(2);
+});
+
+test("binds an active session, switches gear, and filters sessions and photos by gear", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("设置密码").fill("test-password");
+  await page.getByLabel("确认密码", { exact: true }).fill("test-password");
+  await page.getByRole("button", { name: "创建", exact: true }).click();
+  const nav = (name: string) =>
+    page.getByRole("navigation").getByRole("button", { name, exact: true }).click();
+  await page.getByRole("button", { name: "添加装备", exact: true }).click();
+  const manager = page.getByRole("dialog", { name: "装备管理" });
+  for (const name of ["银色款", "黑色款"]) {
+    await manager.getByRole("button", { name: "新增装备" }).click();
+    await manager.getByLabel("装备名称").fill(name);
+    await manager.getByRole("button", { name: "保留装备到草稿" }).click();
+  }
+  await manager.getByRole("button", { name: "保存", exact: true }).click();
+
+  await page.getByRole("button", { name: "开始佩戴", exact: true }).click();
+  const bindGearForm = page.getByRole("dialog", { name: "关联本次装备" });
+  await page.getByRole("button", { name: "关联本次装备", exact: true }).click();
+  await bindGearForm.getByLabel("当前时段装备").selectOption({ label: "银色款" });
+  await bindGearForm.getByRole("button", { name: "保存关联", exact: true }).click();
+  await expect(page.getByRole("button", { name: "银色款 装备管理" })).toBeVisible();
+
+  await nav("记录");
+  const recordGear = page.getByRole("combobox", { name: "装备", exact: true });
+  const silverId = await recordGear.locator("option").filter({ hasText: "银色款" }).getAttribute("value");
+  await expect(recordGear).toHaveValue(silverId!);
+  await page.getByLabel("从相册选择照片").setInputFiles(path.resolve("tests/fixture.jpg"));
+  await page.getByRole("button", { name: "保存记录", exact: true }).click();
+  await expect(page.getByRole("button", { name: "银色款 装备管理" })).toBeVisible();
+  await page.getByRole("button", { name: "暂停", exact: true }).click();
+  await expect(page.getByText("已暂停", { exact: true })).toBeVisible();
+  await nav("记录");
+  await expect(recordGear).toHaveValue(silverId!);
+  await nav("首页");
+  await page.getByRole("button", { name: "调整本次装备" }).click();
+  const editGearForm = page.getByRole("dialog", { name: "调整本次装备" });
+  await editGearForm.getByLabel("当前时段装备").selectOption({ label: "黑色款" });
+  await editGearForm.getByRole("button", { name: "从现在更换装备" }).click();
+  await expect(page.getByRole("button", { name: "黑色款 装备管理" })).toBeVisible();
+  await expect(page.getByText("正在佩戴", { exact: true })).toBeVisible();
+
+  const history = page.getByRole("dialog", { name: "装备历史" });
+  const filter = history.getByLabel("按装备筛选");
+  await page.getByRole("button", { name: "黑色款 装备管理" }).click();
+  await manager.getByRole("button", { name: "查看装备历史" }).click();
+  await expect(manager).toHaveCount(0);
+  const blackId = await filter.locator("option").filter({ hasText: "黑色款" }).getAttribute("value");
+  await expect(filter).toHaveValue(blackId!);
+  await history.getByRole("button", { name: "关闭", exact: true }).click();
+
+  await nav("统计");
+  await page.getByRole("button", { name: "查看装备历史", exact: true }).click();
+  await filter.selectOption({ label: "黑色款" });
+  await expect(history.locator(".session-row")).toHaveCount(1);
+  await expect(history.locator(".session-row")).toContainText("正在佩戴");
+
+  await filter.selectOption({ label: "银色款" });
+  await expect(history.locator(".session-row")).toHaveCount(1);
+  await expect(history.locator(".session-row")).toContainText("至");
+  await history.getByRole("button", { name: "记录与照片" }).click();
+  await expect(history.locator("article.record .photo-thumb")).toHaveCount(1);
+  await history.locator("article.record").getByRole("button", { name: /^编辑/ }).click();
+  const edit = page.getByRole("dialog", { name: "编辑记录" });
+  await edit.getByRole("combobox", { name: "装备", exact: true }).selectOption({ label: "黑色款" });
+  await edit.getByRole("button", { name: "保存修改", exact: true }).click();
+  await expect(history.getByText("暂无相关记录")).toBeVisible();
+  await filter.selectOption({ label: "黑色款" });
+  await expect(history.locator("article.record .photo-thumb")).toHaveCount(1);
+  await filter.selectOption({ label: "未指定" });
+  await expect(history.getByText("暂无相关记录")).toBeVisible();
+  await history.getByRole("button", { name: "关闭", exact: true }).click();
+
+  await nav("首页");
+  await page.getByRole("button", { name: "黑色款 装备管理" }).click();
+  await manager.getByRole("button", { name: "黑色款", exact: true }).click();
+  await manager.getByLabel("装备备注").fill("已更新备注");
+  await manager.getByRole("button", { name: "保留装备到草稿" }).click();
+  await manager.getByRole("button", { name: "保存", exact: true }).click();
+  await expect(manager).toHaveCount(0);
 });

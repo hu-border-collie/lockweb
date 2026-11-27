@@ -23,7 +23,6 @@ import {
   WifiOff,
   Eye,
   EyeOff,
-  ChevronRight,
 } from "lucide-react";
 import { Auth } from "./components/Auth";
 import { Home } from "./components/Home";
@@ -31,7 +30,9 @@ import { Calendar } from "./components/Calendar";
 import { Stats } from "./components/Stats";
 import { Settings, type Theme } from "./components/Settings";
 import { EntryForm } from "./components/EntryForm";
-import { SessionForm } from "./components/SessionForm";
+import { SessionForm, SessionRow } from "./components/SessionForm";
+import { ActiveGearForm } from "./components/ActiveGearForm";
+import { GearHistory } from "./components/GearHistory";
 import { StealthContext } from "./components/Stealth";
 import { FateWheel } from "./components/FateWheel";
 import { defaultFate, type FateState } from "./lib/fate";
@@ -46,10 +47,8 @@ import {
 } from "./lib/models";
 import {
   dayKey,
-  duration,
-  dateTime,
+  finishSession,
   streaks,
-  totalWear,
 } from "./lib/time";
 const NAV = [
   { id: "home", label: "首页", icon: HomeIcon },
@@ -258,6 +257,8 @@ function Unlocked({
     null,
   );
   const [manage, setManage] = useState(false);
+  const [activeGearSession, setActiveGearSession] = useState<WearSession | null>(null);
+  const [gearHistory, setGearHistory] = useState<string | null>(null);
   const [viewer, setViewer] = useState<{ ids: string[]; index: number } | null>(
     null,
   );
@@ -330,6 +331,16 @@ function Unlocked({
     if (gearId && !settings.gears.some((g) => g.id === gearId && !g.archived))
       setGearId("");
   }, [gearId, settings]);
+  const gearsById = useMemo(
+    () => new Map(settings.gears.map((gear) => [gear.id, gear])),
+    [settings.gears],
+  );
+  const preferredGearId = active ? (active.gearId ?? "") : gearId;
+  const defaultEntryGearId = settings.gears.some(
+    (g) => g.id === preferredGearId && !g.archived,
+  )
+    ? preferredGearId
+    : "";
   const paused = active?.breaks?.at(-1)?.end === null;
   const totals = useMemo(() => streaks(entries, now), [entries, now]);
   const view = useCallback(
@@ -352,10 +363,10 @@ function Unlocked({
   const save = useCallback(async () => {
     await refresh();
     setEdit(null);
-    setTab("home");
+    if (gearHistory === null) setTab("home");
     setFormKey((v) => v + 1);
     setMessage("已保存");
-  }, [refresh]);
+  }, [gearHistory, refresh]);
   const navigate = useCallback((t: string) => {
     setTab(t);
     setNow(Date.now());
@@ -363,6 +374,7 @@ function Unlocked({
     window.scrollTo({ top: 0 });
   }, []);
   const openManage = useCallback(() => setManage(true), []);
+  const openGearHistory = useCallback((gearId = "") => setGearHistory(gearId), []);
   const openWheel = useCallback(() => setWheelOpen(true), []);
   const cancelEntry = useCallback(() => navigate("home"), [navigate]);
   const cancelEdit = useCallback(() => setEdit(null), []);
@@ -373,17 +385,10 @@ function Unlocked({
   const handleToggleWear = useCallback(async () => {
     await run(async () => {
       if (active) {
-        const end = Date.now();
-        await vault.saveSession(
-          {
-            ...active,
-            end,
-            breaks: active.breaks?.map((b) =>
-              b.end === null ? { ...b, end } : b,
-            ),
-          },
-          revision,
-        );
+        while (Date.now() <= active.start) {
+          await new Promise((resolve) => setTimeout(resolve, 1));
+        }
+        await vault.saveSession(finishSession(active, Date.now()), revision);
         setMessage("已结束佩戴");
       } else {
         await vault.saveSession(
@@ -512,12 +517,16 @@ function Unlocked({
             paused={paused}
             gearId={gearId}
             setGearId={setGearId}
+            revision={revision}
+            refresh={refresh}
             busy={busy}
             ready={ready}
             onToggleWear={handleToggleWear}
             onTogglePause={handleTogglePause}
             onOpenManage={openManage}
+            onEditActiveGear={setActiveGearSession}
             onOpenWheel={openWheel}
+            onOpenGearHistory={openGearHistory}
             onNavigate={navigate}
             onEdit={setEdit}
             onView={view}
@@ -545,6 +554,7 @@ function Unlocked({
               sessions={sessions}
               settings={settings}
               active={paused ? undefined : active}
+              defaultGearId={defaultEntryGearId}
               onSave={save}
               onCancel={cancelEntry}
             />
@@ -558,6 +568,7 @@ function Unlocked({
             settings={settings}
             fate={fate}
             onDay={selectStatsDay}
+            onOpenGearHistory={openGearHistory}
           />
         )}
         {tab === "settings" && (
@@ -595,6 +606,42 @@ function Unlocked({
           {message}
         </div>
       )}
+      {gearHistory !== null && (
+        <Modal title="装备历史" onClose={() => setGearHistory(null)}>
+          <GearHistory
+            initialGear={gearHistory}
+            gears={settings.gears}
+            sessions={sessions}
+            entries={entries}
+            vault={vault}
+            now={now}
+            onEditEntry={setEdit}
+            onEditSession={setSessionModal}
+            onView={view}
+          />
+        </Modal>
+      )}
+      {activeGearSession && (
+        <Modal
+          title={activeGearSession.gearId ? "调整本次装备" : "关联本次装备"}
+          onClose={() => setActiveGearSession(null)}
+        >
+          <ActiveGearForm
+            session={activeGearSession}
+            gears={settings.gears}
+            vault={vault}
+            revision={revision}
+            onSave={async (selectedGearId, switched) => {
+              await refresh();
+              setGearId(selectedGearId);
+              setActiveGearSession(null);
+              setMessage(
+                switched ? "已更换装备，新时段开始计时" : "已保存本次装备关联",
+              );
+            }}
+          />
+        </Modal>
+      )}
       {edit && (
         <Modal title="编辑记录" onClose={cancelEdit}>
           <EntryForm
@@ -628,25 +675,17 @@ function Unlocked({
           </button>
           <p className="muted">可修改开始和结束时间。重叠部分只计一次。</p>
           {sessions.length ? (
-            sessions.map((s) => (
-              <button
-                key={s.id}
-                className="session-row"
-                onClick={() => {
+            sessions.map((session) => (
+              <SessionRow
+                key={session.id}
+                session={session}
+                gearName={gearsById.get(session.gearId ?? "")?.name ?? "未指定"}
+                now={now}
+                onEdit={(selectedSession) => {
                   setManage(false);
-                  setSessionModal(s);
+                  setSessionModal(selectedSession);
                 }}
-              >
-                <span>
-                  <strong>{dateTime(s.start)}</strong>
-                  <small>{s.end ? `至 ${dateTime(s.end)}` : "正在佩戴"}</small>
-                  {s.note && <small>{s.note}</small>}
-                </span>
-                <span>
-                  {duration(totalWear([s], now))}
-                  <ChevronRight size={16} />
-                </span>
-              </button>
+              />
             ))
           ) : (
             <Empty

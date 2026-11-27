@@ -3,7 +3,7 @@ import { X, Plus, Minus, RotateCcw, Image as ImageIcon } from "lucide-react";
 import type { Vault } from "../lib/db";
 import type { Entry } from "../lib/models";
 import { clock, dateTime } from "../lib/time";
-import { useStealth } from "./Stealth";
+import { useConcealHold, useStealth } from "./Stealth";
 const modalStack: HTMLDivElement[] = [];
 let previousOverflow = "";
 export const Empty = memo(function Empty({
@@ -145,71 +145,7 @@ export function Photo({
   const [url, setUrl] = useState("");
   const [error, setError] = useState(false);
   const stealth = useStealth();
-  const [reveal, setReveal] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const held = useRef(false);
-  const stop = () => {
-    clearTimeout(timer.current);
-    setReveal(false);
-  };
-  useEffect(() => {
-    clearTimeout(timer.current);
-    setReveal(false);
-    held.current = false;
-  }, [stealth]);
-  useEffect(() => {
-    const clear = () => {
-      clearTimeout(timer.current);
-      setReveal(false);
-      held.current = false;
-    };
-    window.addEventListener("blur", clear);
-    document.addEventListener("visibilitychange", clear);
-    return () => {
-      clearTimeout(timer.current);
-      window.removeEventListener("blur", clear);
-      document.removeEventListener("visibilitychange", clear);
-    };
-  }, []);
-  const preview = {
-    onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
-      if (!stealth || e.button !== 0) return;
-      held.current = false;
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => {
-        held.current = true;
-        setReveal(true);
-      }, 350);
-    },
-    onPointerUp: stop,
-    onPointerCancel: stop,
-    onPointerLeave: stop,
-    onBlur: stop,
-    onContextMenu: (e: React.MouseEvent) => {
-      if (stealth) e.preventDefault();
-    },
-    onKeyDown: (e: React.KeyboardEvent) => {
-      if (stealth && e.key === " ") {
-        e.preventDefault();
-        held.current = true;
-        setReveal(true);
-      }
-    },
-    onKeyUp: (e: React.KeyboardEvent) => {
-      if (e.key === " ") {
-        e.preventDefault();
-        stop();
-        held.current = false;
-      }
-    },
-    onClick: () => {
-      if (held.current) {
-        held.current = false;
-        return;
-      }
-      onClick?.();
-    },
-  };
+  const { concealed, handlers } = useConcealHold(stealth, onClick);
   const ref = useRef<HTMLElement | null>(null);
   useEffect(() => {
     let alive = true,
@@ -254,8 +190,8 @@ export function Photo({
         ref.current = node;
       }}
       type="button"
-      className={`photo-thumb ${stealth && !reveal ? "concealed" : ""}`}
-      {...preview}
+      className={`photo-thumb ${concealed ? "concealed" : ""}`}
+      {...handlers}
       aria-label="查看照片"
     >
       {content}
@@ -265,8 +201,8 @@ export function Photo({
       ref={(node) => {
         ref.current = node;
       }}
-      className={`photo-thumb ${stealth && !reveal ? "concealed" : ""}`}
-      {...preview}
+      className={`photo-thumb ${concealed ? "concealed" : ""}`}
+      {...handlers}
       tabIndex={stealth ? 0 : undefined}
       aria-label="照片缩略图"
     >
@@ -279,17 +215,21 @@ export const RecordCard = memo(function RecordCard({
   vault,
   onEdit,
   onView,
+  gearName,
 }: {
   entry: Entry;
   vault: Vault;
   onEdit: (e: Entry) => void;
   onView: (ids: string[], index: number) => void;
+  gearName?: string;
 }) {
   return (
     <article className="card record">
       <div className="record-heading">
         <div>
-          <strong className="record-time">{clock(entry.timestamp)}</strong>
+          <strong className="record-time">
+            {gearName === undefined ? clock(entry.timestamp) : dateTime(entry.timestamp)}
+          </strong>
           <span className="record-status">
             {entry.wearing === "on"
               ? "佩戴中"
@@ -297,6 +237,7 @@ export const RecordCard = memo(function RecordCard({
                 ? "未佩戴"
                 : "未记录状态"}
             {entry.comfort ? " · 舒适度 " + entry.comfort + "/5" : ""}
+            {gearName !== undefined && ` · ${gearName}`}
           </span>
         </div>
         <button
