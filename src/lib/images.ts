@@ -86,6 +86,14 @@ export async function processImage(file: File): Promise<PhotoInput> {
   };
 }
 
+export function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x2000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x2000));
+  }
+  return btoa(binary);
+}
+
 export async function processGearAvatar(file: File): Promise<string> {
   const img = await loadPhoto(file);
   let thumbnail = await jpeg(img, 192, 0.76);
@@ -94,5 +102,5 @@ export async function processGearAvatar(file: File): Promise<string> {
   if (thumbnail.size > MAX_GEAR_AVATAR_BYTES)
     throw new Error("无法缩小头像，请换一张图片");
   const bytes = new Uint8Array(await thumbnail.arrayBuffer());
-  return "data:image/jpeg;base64," + btoa(String.fromCharCode(...bytes));
+  return "data:image/jpeg;base64," + bytesToBase64(bytes);
 }

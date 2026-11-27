@@ -305,8 +305,11 @@ export class Vault {
     if (active.gearId === gearId || !settings.gears.some(
       (gear) => gear.id === gearId && !gear.archived,
     ))
-      throw new Error("请选择另一把可用的锁具");
+      throw new Error("请选择另一件可用的装备");
 
+    while (Date.now() <= active.start) {
+      await new Promise((resolve) => setTimeout(resolve, 1));
+    }
     const now = Date.now();
     const ended = finishSession(active, now);
     const next: WearSession = { id: id(), start: now, end: null, note: "", gearId };

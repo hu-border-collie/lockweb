@@ -30,7 +30,6 @@ import { Calendar } from "./components/Calendar";
 import { Stats } from "./components/Stats";
 import { Settings, type Theme } from "./components/Settings";
 import { EntryForm } from "./components/EntryForm";
-import { JournalOptions } from "./components/JournalOptions";
 import { SessionForm, SessionRow } from "./components/SessionForm";
 import { ActiveGearForm } from "./components/ActiveGearForm";
 import { GearHistory } from "./components/GearHistory";
@@ -336,6 +335,12 @@ function Unlocked({
     () => new Map(settings.gears.map((gear) => [gear.id, gear])),
     [settings.gears],
   );
+  const preferredGearId = active ? (active.gearId ?? "") : gearId;
+  const defaultEntryGearId = settings.gears.some(
+    (g) => g.id === preferredGearId && !g.archived,
+  )
+    ? preferredGearId
+    : "";
   const paused = active?.breaks?.at(-1)?.end === null;
   const totals = useMemo(() => streaks(entries, now), [entries, now]);
   const view = useCallback(
@@ -380,6 +385,9 @@ function Unlocked({
   const handleToggleWear = useCallback(async () => {
     await run(async () => {
       if (active) {
+        while (Date.now() <= active.start) {
+          await new Promise((resolve) => setTimeout(resolve, 1));
+        }
         await vault.saveSession(finishSession(active, Date.now()), revision);
         setMessage("已结束佩戴");
       } else {
@@ -509,18 +517,8 @@ function Unlocked({
             paused={paused}
             gearId={gearId}
             setGearId={setGearId}
-            gearManager={
-              <JournalOptions
-                vault={vault}
-                settings={settings}
-                revision={revision}
-                refresh={refresh}
-                home={{
-                  gear: gearsById.get(active ? (active.gearId ?? "") : gearId),
-                  onOpenHistory: openGearHistory,
-                }}
-              />
-            }
+            revision={revision}
+            refresh={refresh}
             busy={busy}
             ready={ready}
             onToggleWear={handleToggleWear}
@@ -528,6 +526,7 @@ function Unlocked({
             onOpenManage={openManage}
             onEditActiveGear={setActiveGearSession}
             onOpenWheel={openWheel}
+            onOpenGearHistory={openGearHistory}
             onNavigate={navigate}
             onEdit={setEdit}
             onView={view}
@@ -555,6 +554,7 @@ function Unlocked({
               sessions={sessions}
               settings={settings}
               active={paused ? undefined : active}
+              defaultGearId={defaultEntryGearId}
               onSave={save}
               onCancel={cancelEntry}
             />
@@ -607,7 +607,7 @@ function Unlocked({
         </div>
       )}
       {gearHistory !== null && (
-        <Modal title="锁具历史" onClose={() => setGearHistory(null)}>
+        <Modal title="装备历史" onClose={() => setGearHistory(null)}>
           <GearHistory
             initialGear={gearHistory}
             gears={settings.gears}
@@ -622,7 +622,10 @@ function Unlocked({
         </Modal>
       )}
       {activeGearSession && (
-        <Modal title="关联本次锁具" onClose={() => setActiveGearSession(null)}>
+        <Modal
+          title={activeGearSession.gearId ? "调整本次装备" : "关联本次装备"}
+          onClose={() => setActiveGearSession(null)}
+        >
           <ActiveGearForm
             session={activeGearSession}
             gears={settings.gears}
@@ -632,7 +635,9 @@ function Unlocked({
               await refresh();
               setGearId(selectedGearId);
               setActiveGearSession(null);
-              setMessage(switched ? "已换锁，新时段开始计时" : "已保存本次锁具关联");
+              setMessage(
+                switched ? "已更换装备，新时段开始计时" : "已保存本次装备关联",
+              );
             }}
           />
         </Modal>

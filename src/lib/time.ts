@@ -161,8 +161,8 @@ export function finishSession(session: WearSession, end: number): WearSession {
   return {
     ...session,
     end,
-    breaks: session.breaks?.map((pause) =>
-      pause.end === null ? { ...pause, end } : pause,
+    breaks: session.breaks?.flatMap((pause) =>
+      pause.end === null ? (pause.start < end ? [{ ...pause, end }] : []) : [pause],
     ),
   };
 }

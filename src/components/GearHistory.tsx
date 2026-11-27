@@ -45,7 +45,7 @@ export function GearHistory({
   return (
     <div className="gear-history">
       <label className="field">
-        按锁具筛选
+        按装备筛选
         <select
           value={selected}
           onChange={(event) => {
@@ -53,7 +53,7 @@ export function GearHistory({
             setLimit(PAGE_SIZE);
           }}
         >
-          <option value="">全部锁具</option>
+          <option value="">全部装备</option>
           <option value={UNASSIGNED}>未指定</option>
           {gears.map((gear) => (
             <option key={gear.id} value={gear.id}>
@@ -63,7 +63,7 @@ export function GearHistory({
         </select>
       </label>
       <p className="muted gear-history-summary">
-        佩戴 {duration(totalWear(matchingSessions, now))} · {matchingSessions.length} 个时段 · {matchingEntries.length} 条打卡 · {photos} 张照片
+        佩戴 {duration(totalWear(matchingSessions, now))} · {matchingSessions.length} 个时段 · {matchingEntries.length} 条记录 · {photos} 张照片
       </p>
       <div className="segmented" role="group" aria-label="历史类型">
         <button
@@ -86,7 +86,7 @@ export function GearHistory({
             setLimit(PAGE_SIZE);
           }}
         >
-          打卡与照片
+          记录与照片
         </button>
       </div>
       {mode === "sessions" ? (
@@ -112,7 +112,7 @@ export function GearHistory({
         ))
       )}
       {count === 0 && (
-        <p className="muted">{mode === "sessions" ? "暂无相关时段" : "暂无相关打卡"}</p>
+        <p className="muted">{mode === "sessions" ? "暂无相关时段" : "暂无相关记录"}</p>
       )}
       {count > limit && (
         <button type="button" className="secondary wide" onClick={() => setLimit(limit + PAGE_SIZE)}>

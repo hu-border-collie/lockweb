@@ -2,15 +2,18 @@ import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { createVault, PrivateDB, Vault } from "../src/lib/db";
 import {
   defaultSettings,
+  MAX_GEAR_AVATAR_BYTES,
   type Entry,
   type WearSession,
 } from "../src/lib/models";
 import {
   dailyWear,
+  finishSession,
   longestContinuous,
   totalWear,
   validateSession,
 } from "../src/lib/time";
+import { bytesToBase64 } from "../src/lib/images";
 import { insights, validateSettings } from "../src/lib/journal";
 import {
   exportBackup,
@@ -278,6 +281,48 @@ describe("journal extensions", () => {
     });
     expect(current).toMatchObject({ gearId: "second", note: "", end: null });
     expect(snap.entries).toEqual([record]);
+  });
+  it("encodes 32 KB avatars without call-stack overflow and finishes same-millisecond sessions cleanly", async () => {
+    const payload = new Uint8Array(MAX_GEAR_AVATAR_BYTES);
+    for (let i = 0; i < payload.length; i++) payload[i] = (i * 31) & 0xff;
+    const encoded = bytesToBase64(payload);
+    const decoded = Uint8Array.from(atob(encoded), (ch) => ch.charCodeAt(0));
+    expect(decoded).toEqual(payload);
+
+    const sameMs = Date.now();
+    const ended = finishSession(
+      {
+        id: "zero-pause",
+        start: sameMs - 100,
+        end: null,
+        note: "",
+        breaks: [{ start: sameMs, end: null }],
+      },
+      sameMs,
+    );
+    expect(ended.breaks).toEqual([]);
+    expect(() => validateSession(ended, sameMs)).not.toThrow();
+
+    const prefs = settings();
+    const second = { ...prefs.gears[0], id: "second", name: "Second" };
+    await vault.saveSettings({ ...prefs, gears: [...prefs.gears, second] }, 0);
+    const now = Date.now();
+    await vault.saveSession(
+      {
+        id: "instant",
+        start: now,
+        end: null,
+        note: "",
+        gearId: "g",
+        breaks: [{ start: now, end: null }],
+      },
+      1,
+    );
+    await expect(vault.switchSessionGear("instant", "second", 2)).resolves.toBeUndefined();
+    const snap = await vault.snapshot();
+    const previous = snap.sessions.find((item) => item.id === "instant");
+    const current = snap.sessions.find((item) => item.end === null);
+    expect(previous && current && current.start > previous.start).toBe(true);
   });
   it("rejects missing gear/session references and rolls back settings with a failed restore", async () => {
     const prefs = settings();

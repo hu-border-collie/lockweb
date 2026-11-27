@@ -44,9 +44,9 @@ export function ActiveGearForm({
   return (
     <fieldset className="form-stack" disabled={busy}>
       <label className="field">
-        当前时段锁具
+        当前时段装备
         <select value={gearId} onChange={(event) => setGearId(event.target.value)}>
-          <option value="">未指定</option>
+          <option value="">不指定</option>
           {gears.filter((gear) => !gear.archived || gear.id === session.gearId).map((gear) => (
             <option key={gear.id} value={gear.id}>
               {gear.name}{gear.archived ? "（已归档）" : ""}
@@ -54,13 +54,13 @@ export function ActiveGearForm({
           ))}
         </select>
       </label>
-      <p className="muted">保存关联会修正本次时段的锁具，原来的开始时间和暂停记录都会保留。已保存的打卡可单独编辑锁具。</p>
+      <p className="muted">保存关联会修正本次时段的装备，原来的开始时间和暂停记录都会保留。已保存的记录可单独编辑装备。</p>
       <button type="button" className="primary wide" disabled={!changed} onClick={() => void save(false)}>
         保存关联
       </button>
-      <p className="muted">实际换了一把锁时，可以从现在起为新锁开启一个时段。</p>
+      <p className="muted">中途更换装备时，可从现在起为新装备开启一个时段。</p>
       <button type="button" className="secondary wide" disabled={!changed || !gearId} onClick={() => void save(true)}>
-        从现在换锁
+        从现在更换装备
       </button>
       {error && <p className="error" role="alert">{error}</p>}
     </fieldset>

@@ -26,6 +26,7 @@ export const EntryForm = memo(function EntryForm({
   settings,
   sessions,
   active,
+  defaultGearId,
 }: {
   entry?: Entry;
   vault: Vault;
@@ -37,6 +38,7 @@ export const EntryForm = memo(function EntryForm({
   settings: JournalSettings;
   sessions: WearSession[];
   active?: WearSession;
+  defaultGearId?: string;
 }) {
   const [initialTimestamp] = useState(() => entry?.timestamp ?? Date.now());
   const [recordId] = useState(() => entry?.id ?? id());
@@ -44,7 +46,7 @@ export const EntryForm = memo(function EntryForm({
   const [baseRevision] = useState(revision);
   const gearNames = new Map(settings.gears.map((gear) => [gear.id, gear.name]));
   const [gearId, setGearId] = useState(
-    entry ? (entry.gearId ?? "") : (active?.gearId ?? ""),
+    entry ? (entry.gearId ?? "") : (defaultGearId ?? active?.gearId ?? ""),
   );
   const [sessionId, setSessionId] = useState(
     entry ? (entry.sessionId ?? "") : (active?.id ?? ""),

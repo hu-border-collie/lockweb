@@ -1,4 +1,4 @@
-import { memo, type ReactNode } from "react";
+import { memo } from "react";
 import {
   Timer,
   Plus,
@@ -13,6 +13,7 @@ import type { FateState } from "../lib/fate";
 import { kindNames, ritualStatus } from "../lib/fate";
 import { dayKey, duration, dateTime, clock, totalWear } from "../lib/time";
 import { Photo, RecordCard, Empty } from "./Shared";
+import { JournalOptions } from "./JournalOptions";
 import { useEffect, useState } from "react";
 
 function LiveWearTimer({ session }: { session?: WearSession }) {
@@ -56,7 +57,8 @@ export interface HomeProps {
   paused: boolean;
   gearId: string;
   setGearId: (id: string) => void;
-  gearManager: ReactNode;
+  revision: number;
+  refresh: () => Promise<void>;
   busy: boolean;
   ready: boolean;
   onToggleWear: () => Promise<void>;
@@ -64,6 +66,7 @@ export interface HomeProps {
   onOpenManage: () => void;
   onEditActiveGear: (session: WearSession) => void;
   onOpenWheel: () => void;
+  onOpenGearHistory: (gearId?: string) => void;
   onNavigate: (tab: string) => void;
   onEdit: (entry: Entry) => void;
   onView: (ids: string[], index: number) => void;
@@ -80,7 +83,8 @@ export const Home = memo(function Home({
   paused,
   gearId,
   setGearId,
-  gearManager,
+  revision,
+  refresh,
   busy,
   ready,
   onToggleWear,
@@ -88,6 +92,7 @@ export const Home = memo(function Home({
   onOpenManage,
   onEditActiveGear,
   onOpenWheel,
+  onOpenGearHistory,
   onNavigate,
   onEdit,
   onView,
@@ -109,6 +114,9 @@ export const Home = memo(function Home({
     .flatMap((e) => e.photoIds.map((p) => ({ p, e })))
     .slice(0, 6);
   const activePause = active?.breaks?.at(-1);
+  const currentGear = settings.gears.find(
+    (g) => g.id === (active ? (active.gearId ?? "") : gearId),
+  );
 
   return (
     <>
@@ -168,7 +176,13 @@ export const Home = memo(function Home({
             </button>
           )}
         </div>
-        {gearManager}
+        <JournalOptions
+          vault={vault}
+          settings={settings}
+          revision={revision}
+          refresh={refresh}
+          home={{ gear: currentGear, onOpenHistory: onOpenGearHistory }}
+        />
         {active && (active.gearId || settings.gears.some((gear) => !gear.archived)) && (
           <button
             type="button"
@@ -176,7 +190,7 @@ export const Home = memo(function Home({
             disabled={busy}
             onClick={() => onEditActiveGear(active)}
           >
-            {active.gearId ? "调整本次锁具" : "关联本次锁具"}
+            {active.gearId ? "调整本次装备" : "关联本次装备"}
           </button>
         )}
         {!active && settings.gears.some((g) => !g.archived) && (

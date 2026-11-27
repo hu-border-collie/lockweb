@@ -11,19 +11,44 @@ import { Modal } from "./Shared";
 import { ChevronRight, LockKeyhole, SlidersHorizontal } from "lucide-react";
 import { processGearAvatar } from "../lib/images";
 import { beginSystemDialog, endSystemDialog } from "../lib/privacy";
-import { useStealth } from "./Stealth";
+import { useConcealHold, useStealth } from "./Stealth";
 
 function GearAvatar({
   src,
   concealed,
+  previewable = false,
 }: {
   src?: string;
   concealed: boolean;
+  previewable?: boolean;
 }) {
+  const hold = useConcealHold(concealed);
+  if (previewable && src) {
+    return (
+      <div
+        className="gear-avatar"
+        {...hold.handlers}
+        tabIndex={concealed ? 0 : undefined}
+        aria-label="装备头像预览"
+      >
+        <img
+          className={hold.concealed ? "concealed" : undefined}
+          src={src}
+          alt="装备头像"
+          draggable={false}
+        />
+      </div>
+    );
+  }
   return (
     <span className="gear-avatar" aria-hidden="true">
       {src ? (
-        <img className={concealed ? "concealed" : undefined} src={src} alt="" />
+        <img
+          className={concealed ? "concealed" : undefined}
+          src={src}
+          alt=""
+          draggable={false}
+        />
       ) : (
         <LockKeyhole size={16} strokeWidth={1.5} />
       )}
@@ -93,12 +118,12 @@ export function JournalOptions({
             {home.gear ? (
               <>
                 <strong>{home.gear.name}</strong>
-                <small>锁具管理</small>
+                <small>装备管理</small>
               </>
             ) : settings.gears.length ? (
-              "锁具管理"
+              "装备管理"
             ) : (
-              "添加锁具"
+              "添加装备"
             )}
           </span>
           <ChevronRight size={16} aria-hidden="true" />
@@ -125,7 +150,7 @@ export function JournalOptions({
       )}
       {draft && (
         <Modal
-          title={home ? "锁具管理" : "记录偏好与装备"}
+          title={home ? "装备管理" : "记录偏好与装备"}
           onClose={() => {
             if (!busy && !processingAvatar) setDraft(null);
           }}
@@ -135,9 +160,20 @@ export function JournalOptions({
               <button
                 type="button"
                 className="secondary wide"
-                onClick={() => home.onOpenHistory(home.gear?.id)}
+                onClick={() => {
+                  const dirty =
+                    gear !== null ||
+                    template !== null ||
+                    JSON.stringify(draft) !== JSON.stringify(settings);
+                  if (dirty && !window.confirm("未保存的装备修改会丢失。继续查看历史？"))
+                    return;
+                  setDraft(null);
+                  setGear(null);
+                  setTemplate(null);
+                  home.onOpenHistory(home.gear?.id);
+                }}
               >
-                查看锁具历史
+                查看装备历史
               </button>
             )}
             {!home && (
@@ -312,11 +348,11 @@ export function JournalOptions({
             {gear && (
               <div className="settings-subform">
                 <div className="gear-avatar-editor">
-                  <GearAvatar src={gear.avatar} concealed={false} />
+                  <GearAvatar src={gear.avatar} concealed={stealth} previewable />
                   <input
                     ref={avatarInput}
                     className="sr-only"
-                    aria-label="选择锁具头像"
+                    aria-label="选择装备头像"
                     tabIndex={-1}
                     type="file"
                     accept="image/*,.heic,.heif"

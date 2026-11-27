@@ -307,7 +307,7 @@ export const Stats = memo(function Stats({
         <div className="section-line">
           <h2>装备使用对比</h2>
           <button type="button" className="text-button" onClick={() => onOpenGearHistory()}>
-            查看锁具历史
+            查看装备历史
           </button>
         </div>
         <p className="muted">

@@ -682,6 +682,13 @@
   border-radius: var(--radius-sm);
   background: var(--paper-sunken);
   color: var(--ink-soft);
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.gear-avatar:focus-visible {
+  outline: 2px solid var(--seal);
+  outline-offset: 2px;
 }
 
 .gear-avatar img {
@@ -689,6 +696,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  pointer-events: none;
 }
 
 .gear-avatar img.concealed {
